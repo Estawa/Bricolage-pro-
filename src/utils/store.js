@@ -4,12 +4,13 @@
 //  - useCloudStore : Firebase Firestore (compte connecté, synchro multi-appareils)
 // Les deux exposent exactement les mêmes fonctions.
 // ---------------------------------------------------------------
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, deleteDoc, doc, getDocs, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
 import { auth, db, firebaseEnabled } from '../firebase';
 import { DEFAULT_SETTINGS } from './calc';
 import { usePersistentState } from './storage';
+import { localPhotos } from './photos';
 
 const clean = (o) => JSON.parse(JSON.stringify(o)); // Firestore refuse les « undefined »
 const byNom = (a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr');
@@ -51,14 +52,17 @@ export function useLocalStore() {
     deleteEntry: remove(setEntries),
     saveChantier: upsert(setChantiers),
     deleteChantier: remove(setChantiers),
+    photos: localPhotos,
     importAll: async (d) => {
       if (d.settings) setSettingsState(d.settings);
       setChantiers(d.chantiers || []);
       setEntries(d.entries || []);
+      for (const [id, data] of Object.entries(d.photos || {})) await localPhotos.set(id, data);
     },
     resetAll: async () => {
       setChantiers([]);
       setEntries([]);
+      await localPhotos.clear();
     },
   };
 }
@@ -146,6 +150,18 @@ export function useCloudStore(user) {
     }
   };
 
+  const photos = useMemo(
+    () => ({
+      get: async (id) => {
+        const snap = await getDoc(doc(db, 'users', uid, 'photos', id));
+        return snap.exists() ? snap.data().data : null;
+      },
+      set: (id, data) => setDoc(doc(db, 'users', uid, 'photos', id), { data, createdAt: Date.now() }),
+      del: (id) => deleteDoc(doc(db, 'users', uid, 'photos', id)),
+    }),
+    [uid]
+  );
+
   const loaded = !!(loadedParts.settings && loadedParts.chantiers && loadedParts.entries);
   const hasPending = Object.values(pending).some(Boolean);
 
@@ -161,16 +177,21 @@ export function useCloudStore(user) {
     deleteEntry: (id) => deleteDoc(doc(col('entries'), id)),
     saveChantier: (c) => setDoc(doc(col('chantiers'), c.id), clean(c)),
     deleteChantier: (id) => deleteDoc(doc(col('chantiers'), id)),
+    photos,
     importAll: async (d) => {
       await deleteAll('entries');
       await deleteAll('chantiers');
+      await deleteAll('photos');
       if (d.settings) setSettings(d.settings);
+      // une photo par écriture (chaque photo pèse jusqu'à ~900 Ko)
+      for (const [id, data] of Object.entries(d.photos || {})) await photos.set(id, data);
       await writeAll('chantiers', d.chantiers || []);
       await writeAll('entries', d.entries || []);
     },
     resetAll: async () => {
       await deleteAll('entries');
       await deleteAll('chantiers');
+      await deleteAll('photos');
     },
   };
 }

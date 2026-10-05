@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS = {
   camionForfait: 30, // € par jour d'utilisation du camion
   camionKm: 0.3, // € supplément par km fait avec le camion
   nettoyageForfait: 40, // € nettoyage complet du camion
+  coordonnees: { nom: 'Christophe Guilhem', telephone: '', email: '', adresse: 'Champcueil' },
   bases: {
     maison: { label: 'Maison', adresse: 'Champcueil, 91750, France', lat: null, lon: null },
     travail: {
@@ -34,9 +35,18 @@ const n = (v) => {
   return Number.isFinite(x) ? x : 0;
 };
 
+// sansKm : prestation sans kilométrage (ex. courses faites sur le trajet habituel, sans détour)
 export function kmTotal(e) {
+  if (e.sansKm) return 0;
   return n(e.kmAller) + n(e.kmRetour) + n(e.kmCourses);
 }
+
+export function totalTickets(e) {
+  return (e.tickets || []).reduce((acc, t) => acc + n(t.montant), 0);
+}
+
+export const shortDate = (s) =>
+  parseIso(s).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
 export function computeEntry(e) {
   const t = e.tarifs || {};
