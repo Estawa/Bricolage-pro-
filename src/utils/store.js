@@ -49,6 +49,10 @@ export function useLocalStore() {
     entries,
     setSettings: (next) => setSettingsState((p) => resolve(next, p)),
     saveEntry: upsert(setEntries),
+    saveEntries: (items) => {
+      const byId = new Map(items.map((x) => [x.id, x]));
+      setEntries((l) => l.map((x) => byId.get(x.id) || x));
+    },
     deleteEntry: remove(setEntries),
     saveChantier: upsert(setChantiers),
     deleteChantier: remove(setChantiers),
@@ -174,6 +178,7 @@ export function useCloudStore(user) {
     entries,
     setSettings,
     saveEntry: (e) => setDoc(doc(col('entries'), e.id), clean(e)),
+    saveEntries: (items) => writeAll('entries', items),
     deleteEntry: (id) => deleteDoc(doc(col('entries'), id)),
     saveChantier: (c) => setDoc(doc(col('chantiers'), c.id), clean(c)),
     deleteChantier: (id) => deleteDoc(doc(col('chantiers'), id)),
