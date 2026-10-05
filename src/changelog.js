@@ -1,6 +1,16 @@
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.4.2';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.2',
+    date: '06/10/2026',
+    items: ['Plus de chargement sans fin : en cas de refus de Firebase, la raison s’affiche ; si le réseau est lent, l’appli s’ouvre au bout de 8 s'],
+  },
+  {
+    version: '1.4.1',
+    date: '06/10/2026',
+    items: ['Données Firebase rangées sous « bricolagePro » : l’appli peut partager un projet Firebase existant sans mélanger les données'],
+  },
   {
     version: '1.4.0',
     date: '05/10/2026',

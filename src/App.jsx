@@ -158,6 +158,14 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-lg space-y-4 px-4 pt-4">
+        {user && cloud.erreur && (
+          <div className="rounded-2xl border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/50 dark:text-red-200" data-testid="erreur-sync">
+            <b>Synchronisation impossible</b> ({cloud.erreur}).{' '}
+            {cloud.erreur === 'permission-denied'
+              ? 'Vérifiez les règles Firestore (bloc « bricolagePro ») puis rechargez la page.'
+              : 'Vérifiez votre connexion et la base Firestore, puis rechargez la page.'}
+          </div>
+        )}
         {tab === 'calendrier' && (
           <>
             <Counters entries={entries} selectedDate={selectedDate} viewMonth={viewMonth} />
