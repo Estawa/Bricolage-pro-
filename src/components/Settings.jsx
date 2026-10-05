@@ -1,5 +1,6 @@
-import { useRef } from 'react';
-import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { usePhotoApi } from '../utils/photos';
+import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2, User, Loader2 } from 'lucide-react';
 import { DEFAULT_SETTINGS, isoDate } from '../utils/calc';
 import { downloadFile } from '../utils/storage';
 import { Card, Label, NumberField, Button, inputCls } from './ui';
@@ -7,14 +8,29 @@ import { AccountCard } from './Account';
 
 export default function Settings({ settings, setSettings, chantiers, entries, onImport, onReset, user, syncState, onLeaveLocal }) {
   const fileRef = useRef(null);
+  const photos = usePhotoApi();
+  const [exporting, setExporting] = useState(false);
+  const setCoord = (patch) => setSettings((s) => ({ ...s, coordonnees: { ...s.coordonnees, ...patch } }));
   // valeur gardée telle que tapée (évite de perdre la virgule pendant la saisie)
   const set = (k) => (v) => setSettings((s) => ({ ...s, [k]: v }));
   const setBase = (key, patch) =>
     setSettings((s) => ({ ...s, bases: { ...s.bases, [key]: { ...s.bases[key], ...patch } } }));
 
-  const exportJson = () => {
-    const data = { app: 'bricolage-pro', version: 1, exportLe: new Date().toISOString(), settings, chantiers, entries };
-    downloadFile(`bricolage-pro-sauvegarde-${isoDate(new Date())}.json`, JSON.stringify(data, null, 2));
+  const exportJson = async () => {
+    setExporting(true);
+    try {
+      const ph = {};
+      for (const e of entries) {
+        for (const t of e.tickets || []) {
+          const d = await photos.get(t.id);
+          if (d) ph[t.id] = d;
+        }
+      }
+      const data = { app: 'bricolage-pro', version: 2, exportLe: new Date().toISOString(), settings, chantiers, entries, photos: ph };
+      downloadFile(`bricolage-pro-sauvegarde-${isoDate(new Date())}.json`, JSON.stringify(data));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const importJson = async (file) => {
@@ -34,6 +50,23 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
       <h2 className="text-lg font-bold">Réglages</h2>
 
       <AccountCard user={user} syncState={syncState} onLeaveLocal={onLeaveLocal} />
+
+      <Card className="space-y-3">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <User size={18} className="text-orange-600" /> Mes coordonnées (fiche récap)
+        </h3>
+        {[
+          ['nom', 'Nom', 'Christophe Guilhem'],
+          ['adresse', 'Adresse / ville', 'Champcueil'],
+          ['telephone', 'Téléphone', '06 …'],
+          ['email', 'E-mail', 'vous@exemple.fr'],
+        ].map(([k, l, ph]) => (
+          <label key={k} className="block">
+            <Label>{l}</Label>
+            <input className={inputCls} placeholder={ph} value={settings.coordonnees?.[k] || ''} onChange={(e) => setCoord({ [k]: e.target.value })} />
+          </label>
+        ))}
+      </Card>
 
       <Card className="space-y-3">
         <h3 className="flex items-center gap-2 font-semibold">
@@ -95,8 +128,8 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
         <p className="text-xs text-stone-500">
           {user ? 'Vos données sont synchronisées dans votre compte. Une sauvegarde fichier reste utile en cas de souci.' : 'Les données sont enregistrées dans ce téléphone. Exportez régulièrement une sauvegarde (à garder sur Drive, par mail…).'}
         </p>
-        <Button variant="ghost" className="w-full" onClick={exportJson}>
-          <Download size={18} /> Exporter une sauvegarde
+        <Button variant="ghost" className="w-full" onClick={exportJson} disabled={exporting}>
+          {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />} Exporter une sauvegarde (avec photos)
         </Button>
         <Button variant="ghost" className="w-full" onClick={() => fileRef.current?.click()}>
           <Upload size={18} /> Restaurer une sauvegarde
@@ -115,7 +148,7 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
           variant="danger"
           className="w-full"
           onClick={() => {
-            if (confirm('Effacer toutes les prestations et tous les chantiers ? (Les tarifs sont conservés.)')) onReset();
+            if (confirm('Effacer toutes les prestations, tous les chantiers et toutes les photos de tickets ? (Les tarifs sont conservés.)')) onReset();
           }}
         >
           <Trash2 size={18} /> Tout effacer

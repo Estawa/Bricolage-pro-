@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, MapPin, Wand2, Loader2, Home, School } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, Wand2, Loader2, Home, School, ChevronRight } from 'lucide-react';
 import { sumEntries, eur, km1, uid } from '../utils/calc';
 import { distancesDepuisBases } from '../utils/distance';
 import { Card, Modal, Label, NumberField, Button, inputCls } from './ui';
 
-export default function Chantiers({ chantiers, saveChantier: save, deleteChantier, entries, settings, setSettings }) {
+export default function Chantiers({ chantiers, saveChantier: save, deleteChantier, entries, settings, setSettings, onOpen }) {
   const [edit, setEdit] = useState(null);
 
   const saveChantier = (c) => {
@@ -46,14 +46,14 @@ export default function Chantiers({ chantiers, saveChantier: save, deleteChantie
         return (
           <Card key={c.id}>
             <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
+              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpen(c)} data-testid="ouvrir-chantier">
                 <div className="font-semibold">{c.nom}</div>
                 {c.adresse && (
                   <div className="flex items-center gap-1 text-xs text-stone-500">
                     <MapPin size={12} /> {c.adresse}
                   </div>
                 )}
-              </div>
+              </button>
               <div className="flex">
                 <button type="button" className="rounded-lg p-2 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-700" onClick={() => setEdit(c)} aria-label="Modifier">
                   <Pencil size={16} />
@@ -71,11 +71,16 @@ export default function Chantiers({ chantiers, saveChantier: save, deleteChantie
                 <School size={14} className="text-orange-600" /> {c.kmTravail !== '' ? km1(+c.kmTravail) : '—'}
               </div>
             </div>
-            {s.nb > 0 && (
-              <div className="mt-2 text-xs text-stone-500">
-                {s.nb} prestation{s.nb > 1 ? 's' : ''} · total facturé {eur(s.total)}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => onOpen(c)}
+              className="mt-2 flex w-full items-center justify-between rounded-xl bg-orange-50 px-3 py-2 text-sm font-medium text-orange-800 dark:bg-orange-950/40 dark:text-orange-200"
+            >
+              <span>
+                {s.nb ? `${s.nb} prestation${s.nb > 1 ? 's' : ''} · coût total ${eur(s.total)}` : 'Aucune prestation — ouvrir la fiche'}
+              </span>
+              <ChevronRight size={16} />
+            </button>
           </Card>
         );
       })}

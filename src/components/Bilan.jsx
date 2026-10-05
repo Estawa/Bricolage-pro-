@@ -31,19 +31,20 @@ export default function Bilan({ entries, viewMonth, settings }) {
     const head = [
       'Date', 'Chantier', 'Départ', 'Retour', 'Heures travail', 'Heures courses', 'Km',
       'Camion', 'Nettoyage', 'Travail €', 'Courses €', 'Déplacement €', 'Camion €',
-      'Nettoyage €', 'Fournitures €', 'Total €', 'Travaux réalisés',
+      'Nettoyage €', 'Fournitures €', 'Total €', 'Tickets', 'Montant tickets €', 'Travaux réalisés',
     ];
     const rows = list.map((e) => {
       const c = computeEntry(e);
       return [
         e.date.split('-').reverse().join('/'),
         e.chantierNom,
-        settings.bases[e.depart]?.label,
-        settings.bases[e.retour]?.label,
+        e.sansKm ? 'sans km' : settings.bases[e.depart]?.label,
+        e.sansKm ? 'sans km' : settings.bases[e.retour]?.label,
         num(c.hT), num(c.hC), num(c.km),
         e.camion ? 'oui' : 'non', e.nettoyage ? 'oui' : 'non',
         num(c.travail), num(c.courses), num(c.deplacement), num(c.camion),
         num(c.nettoyage), num(c.fournitures), num(c.total),
+        (e.tickets || []).length, num((e.tickets || []).reduce((a, t) => a + (parseFloat(t.montant) || 0), 0)),
         (e.description || '').replace(/\s+/g, ' '),
       ];
     });
