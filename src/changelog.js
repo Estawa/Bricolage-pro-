@@ -1,6 +1,16 @@
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.3.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.3.0',
+    date: '05/10/2026',
+    items: [
+      'Temps de travail et temps de courses : saisie au choix en durée ou en heure de début / heure de fin',
+      'Durée calculée automatiquement (pause déductible pour le travail, fin après minuit gérée)',
+      'Horaires repris sur les cartes, le partage, la fiche récapitulative et l’export CSV',
+      'Le dernier mode de saisie utilisé est proposé par défaut',
+    ],
+  },
   {
     version: '1.2.0',
     date: '05/10/2026',
