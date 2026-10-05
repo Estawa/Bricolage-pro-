@@ -1,5 +1,6 @@
 // Construction des récapitulatifs (texte à partager + données de la fiche)
 import { computeEntry, sumEntries, eur, hm, km1, shortDate, totalTickets } from './calc';
+import { plage } from './temps';
 
 const n = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
 export const frDate = (s) => s.split('-').reverse().join('/');
@@ -17,11 +18,21 @@ export function periode(entries) {
 }
 
 // Résumé court d'une prestation : "Main-d'œuvre 3 h 30 · Courses 45 min · 28 km · Camion"
+// Horaires affichés quand la prestation a été saisie en « début – fin »
+export function horairesTravail(e) {
+  return e.travailMode === 'horaires' ? plage(e.travailDebut, e.travailFin, e.travailPause) : '';
+}
+export function horairesCourses(e) {
+  return e.coursesMode === 'horaires' ? plage(e.coursesDebut, e.coursesFin, e.coursesPause) : '';
+}
+
 export function resumeLigne(e) {
   const c = computeEntry(e);
   const parts = [];
-  if (c.hT) parts.push(`Main-d'œuvre ${hm(c.hT)}`);
-  if (c.hC) parts.push(`Courses ${hm(c.hC)}`);
+  const hT = horairesTravail(e);
+  const hC = horairesCourses(e);
+  if (c.hT) parts.push(`Main-d'œuvre ${hm(c.hT)}${hT ? ` (${hT})` : ''}`);
+  if (c.hC) parts.push(`Courses ${hm(c.hC)}${hC ? ` (${hC})` : ''}`);
   parts.push(e.sansKm ? 'Sans km' : km1(c.km));
   if (e.camion) parts.push('Camion');
   if (e.nettoyage) parts.push('Nettoyage camion');
