@@ -1,0 +1,18 @@
+Bricolage Pro by C. Guilhem — journal des modifications
+
+v1.1.0 — 05/10/2026
+- Synchronisation Firebase (compte e-mail / mot de passe), multi-appareils
+- Fonctionne hors ligne, synchronise au retour du réseau (indicateur nuage)
+- Envoi des données déjà saisies sur le téléphone vers le compte (proposé une fois)
+- Bouton « Recalculer avec les tarifs actuels » dans chaque prestation, avec confirmation avant application
+- Étiquette « Anciens tarifs » sur les prestations concernées
+
+v1.0.0 — 05/10/2026
+- Première version
+- Tarifs : coût horaire travail, coût horaire courses, coût kilométrique
+- Départ / retour au choix : Maison (Champcueil) ou Travail (Courcouronnes)
+- Option camion (forfait + supplément au km) et nettoyage complet du camion
+- Calendrier : saisie des prestations jour par jour (ajout, modification, duplication, suppression)
+- Compteurs en direct : temps de travail, temps de courses, kilomètres, facturation (jour / mois / année)
+- Fiches chantiers : distances depuis Maison et Travail, calcul automatique par la route (OpenStreetMap)
+- Bilan mensuel / annuel par chantier, export CSV, sauvegarde / restauration JSON
