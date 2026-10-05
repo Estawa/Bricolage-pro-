@@ -1,5 +1,11 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.3.0 — 05/10/2026
+- Temps de travail et temps de courses : au choix, durée directe ou heure de début + heure de fin
+- Durée calculée automatiquement (pause déductible pour le travail ; fin après minuit = lendemain)
+- Horaires affichés sur les cartes, dans le partage, la fiche récapitulative et l'export CSV
+- Le dernier mode de saisie utilisé (durée ou début-fin) est proposé par défaut
+
 v1.2.0 — 05/10/2026
 - Option « Aucun kilométrage » par prestation (courses sur le trajet habituel, sans détour)
 - Fiche chantier : toutes les prestations par date, modifiables (date, contenu, tickets), avec totaux
