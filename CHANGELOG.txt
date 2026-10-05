@@ -1,5 +1,15 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.2.0 — 05/10/2026
+- Option « Aucun kilométrage » par prestation (courses sur le trajet habituel, sans détour)
+- Fiche chantier : toutes les prestations par date, modifiables (date, contenu, tickets), avec totaux
+- Photos des tickets de caisse (compressées, montant + libellé), report du total en fournitures
+- Partage sélectif via WhatsApp, mail… : prestations choisies (un jour, plusieurs, tout le chantier) + photos des tickets
+- Fiche récapitulative style facturation se terminant par le « Coût total » (pas de « net à payer »),
+  imprimable / enregistrable en PDF, noir et blanc, lignes non coupées entre deux pages, tickets en annexe
+- Coordonnées du prestataire dans les Réglages
+- Sauvegarde / restauration incluant les photos
+
 v1.1.0 — 05/10/2026
 - Synchronisation Firebase (compte e-mail / mot de passe), multi-appareils
 - Fonctionne hors ligne, synchronise au retour du réseau (indicateur nuage)

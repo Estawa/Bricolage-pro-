@@ -23,7 +23,9 @@ Données synchronisées dans Firestore (avec cache hors ligne), ou dans le tél�
    (ex. `bricolage-pro.vercel.app`).
 7. Pousser sur GitHub : Vercel redéploie tout seul. Au premier lancement, « Créer mon compte ».
 
-Données Firestore : `users/{uid}/meta/settings`, `users/{uid}/chantiers/{id}`, `users/{uid}/entries/{id}`.
+Données Firestore : `users/{uid}/meta/settings`, `users/{uid}/chantiers/{id}`, `users/{uid}/entries/{id}`, `users/{uid}/photos/{id}`.
+Les photos de tickets sont compressées dans le téléphone et rangées dans Firestore : **pas besoin d'activer Firebase Storage**
+(qui exige désormais le forfait payant). Le forfait gratuit offre 1 Go, soit plusieurs milliers de tickets.
 
 ## En local
 ```
