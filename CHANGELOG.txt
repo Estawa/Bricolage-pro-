@@ -1,5 +1,11 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.4.2 — 06/10/2026
+- Plus de chargement sans fin : l'erreur Firebase s'affiche ; ouverture au bout de 8 s si le réseau est lent
+
+v1.4.1 — 06/10/2026
+- Données Firebase rangées sous « bricolagePro » : possibilité d'utiliser un projet Firebase déjà existant
+
 v1.4.0 — 05/10/2026
 - Changement des tarifs en une fois : toutes les prestations ou une sélection (filtres chantier, période, anciens tarifs, cases à cocher)
 - Comparaison de deux tarifs face à face (A / B) : coût par poste, coût total, écart en € et en %
