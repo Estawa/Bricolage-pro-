@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, MapPin, Plus, Share2, FileText, CheckSquare, Square } from 'lucide-react';
+import { ArrowLeft, MapPin, Plus, Share2, FileText, CheckSquare, Square, Scale } from 'lucide-react';
 import { sumEntries, eur, hm, km1, MOIS, parseIso } from '../utils/calc';
 import { sortByDate } from '../utils/recap';
 import { Card, Button } from './ui';
 import EntryCard from './EntryCard';
 
 // Toutes les prestations d'un chantier, modifiables, avec sélection pour partage / fiche
-export default function ChantierDetail({ chantier, entries, settings, onBack, onAdd, onEdit, onDelete, onDuplicate, onRecalc, onShare, onFiche }) {
+export default function ChantierDetail({ chantier, entries, settings, onBack, onAdd, onEdit, onDelete, onDuplicate, onRecalc, onShare, onFiche, onTarifs }) {
   const list = useMemo(() => sortByDate(entries.filter((e) => e.chantierId === chantier.id)), [entries, chantier.id]);
   const [sel, setSel] = useState(() => new Set());
   const s = sumEntries(list);
@@ -105,11 +105,14 @@ export default function ChantierDetail({ chantier, entries, settings, onBack, on
       {list.length > 0 && (
         <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 px-4">
           <div className="mx-auto flex max-w-lg gap-2 rounded-2xl bg-stone-900 p-2 shadow-xl dark:bg-black">
-            <Button variant="ghost" className="flex-1 py-2 text-sm" onClick={() => onFiche(cible)} data-testid="fiche-chantier">
+            <Button variant="ghost" className="flex-1 px-2 py-2 text-sm" onClick={() => onFiche(cible)} data-testid="fiche-chantier">
               <FileText size={16} /> Fiche
             </Button>
+            <Button variant="ghost" className="flex-1 px-2 py-2 text-sm" onClick={() => onTarifs(cible)} data-testid="tarifs-chantier">
+              <Scale size={16} /> Tarifs
+            </Button>
             <Button className="flex-[2] py-2 text-sm" onClick={() => onShare(cible)} data-testid="partager-chantier">
-              <Share2 size={16} /> Partager ({libelleCible})
+              <Share2 size={16} /> Partager <span className="text-xs font-normal opacity-80">({libelleCible})</span>
             </Button>
           </div>
         </div>

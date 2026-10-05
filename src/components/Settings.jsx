@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react';
 import { usePhotoApi } from '../utils/photos';
-import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2, User, Loader2 } from 'lucide-react';
+import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2, User, Loader2, Scale } from 'lucide-react';
 import { DEFAULT_SETTINGS, isoDate } from '../utils/calc';
 import { downloadFile } from '../utils/storage';
 import { Card, Label, NumberField, Button, inputCls } from './ui';
 import { AccountCard } from './Account';
 
-export default function Settings({ settings, setSettings, chantiers, entries, onImport, onReset, user, syncState, onLeaveLocal }) {
+export default function Settings({ settings, setSettings, chantiers, entries, onImport, onReset, user, syncState, onLeaveLocal, onBulk }) {
   const fileRef = useRef(null);
   const photos = usePhotoApi();
   const [exporting, setExporting] = useState(false);
@@ -79,6 +79,9 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
           <ShoppingCart size={14} className="mt-0.5 shrink-0" />
           Les tarifs sont enregistrés avec chaque prestation : les modifier ici ne change pas les journées déjà saisies.
         </p>
+        <Button variant="ghost" className="w-full" onClick={onBulk} data-testid="ouvrir-bulk">
+          <Scale size={18} /> Comparer / changer les tarifs de plusieurs prestations
+        </Button>
       </Card>
 
       <Card className="space-y-3">
