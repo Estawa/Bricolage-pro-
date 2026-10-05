@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1, MOIS } from '../utils/calc';
 import { downloadFile } from '../utils/storage';
+import { horairesTravail, horairesCourses } from '../utils/recap';
 import { Card, Segmented, Button, inputCls } from './ui';
 
 export default function Bilan({ entries, viewMonth, settings }) {
@@ -29,7 +30,7 @@ export default function Bilan({ entries, viewMonth, settings }) {
   const exportCsv = () => {
     const num = (v) => String(Math.round(v * 100) / 100).replace('.', ',');
     const head = [
-      'Date', 'Chantier', 'Départ', 'Retour', 'Heures travail', 'Heures courses', 'Km',
+      'Date', 'Chantier', 'Départ', 'Retour', 'Heures travail', 'Horaires travail', 'Heures courses', 'Horaires courses', 'Km',
       'Camion', 'Nettoyage', 'Travail €', 'Courses €', 'Déplacement €', 'Camion €',
       'Nettoyage €', 'Fournitures €', 'Total €', 'Tickets', 'Montant tickets €', 'Travaux réalisés',
     ];
@@ -40,7 +41,7 @@ export default function Bilan({ entries, viewMonth, settings }) {
         e.chantierNom,
         e.sansKm ? 'sans km' : settings.bases[e.depart]?.label,
         e.sansKm ? 'sans km' : settings.bases[e.retour]?.label,
-        num(c.hT), num(c.hC), num(c.km),
+        num(c.hT), horairesTravail(e), num(c.hC), horairesCourses(e), num(c.km),
         e.camion ? 'oui' : 'non', e.nettoyage ? 'oui' : 'non',
         num(c.travail), num(c.courses), num(c.deplacement), num(c.camion),
         num(c.nettoyage), num(c.fournitures), num(c.total),

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, Share2 } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1 } from '../utils/calc';
-import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText } from '../utils/recap';
+import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses } from '../utils/recap';
 import { usePhoto } from '../utils/photos';
 import { isoDate } from '../utils/calc';
 
@@ -109,8 +109,8 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
                     {e.description && <div className="whitespace-pre-line">{e.description}</div>}
                     <div className="mt-0.5 text-[12px] text-stone-700">
                       {[
-                        c.hT ? `Main-d'œuvre ${hm(c.hT)}` : null,
-                        c.hC ? `Courses ${hm(c.hC)}` : null,
+                        c.hT ? `Main-d'œuvre ${hm(c.hT)}${horairesTravail(e) ? ` (${horairesTravail(e)})` : ''}` : null,
+                        c.hC ? `Courses ${hm(c.hC)}${horairesCourses(e) ? ` (${horairesCourses(e)})` : ''}` : null,
                         e.sansKm ? null : km1(c.km),
                         e.camion ? 'Camion' : null,
                         e.nettoyage ? 'Nettoyage camion' : null,

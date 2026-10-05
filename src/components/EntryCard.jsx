@@ -1,6 +1,7 @@
 import { Pencil, Trash2, Copy, Truck, Sparkles, ArrowRight, RefreshCw, Receipt } from 'lucide-react';
 import { computeEntry, snapshotTarifs, eur, hm, km1, shortDate, totalTickets } from '../utils/calc';
 import { TicketStrip } from './Tickets';
+import { horairesTravail, horairesCourses } from '../utils/recap';
 
 const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
 
@@ -50,8 +51,18 @@ export default function EntryCard({ entry: e, settings, showDate, showChantier =
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-        {c.hT > 0 && <Chip>🔨 {hm(c.hT)}</Chip>}
-        {c.hC > 0 && <Chip>🛒 {hm(c.hC)}</Chip>}
+        {c.hT > 0 && (
+          <Chip>
+            🔨 {hm(c.hT)}
+            {horairesTravail(e) && <span className="text-stone-500 dark:text-stone-400">· {horairesTravail(e)}</span>}
+          </Chip>
+        )}
+        {c.hC > 0 && (
+          <Chip>
+            🛒 {hm(c.hC)}
+            {horairesCourses(e) && <span className="text-stone-500 dark:text-stone-400">· {horairesCourses(e)}</span>}
+          </Chip>
+        )}
         <Chip>🚗 {e.sansKm ? '0 km' : km1(c.km)}</Chip>
         {e.camion && (
           <Chip>

@@ -111,7 +111,7 @@ export function DurationField({ label, value, onChange, idPrefix }) {
   const minutes = Array.from({ length: 12 }, (_, i) => i * 5);
   return (
     <div>
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <input

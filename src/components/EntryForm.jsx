@@ -4,7 +4,8 @@ import { computeEntry, snapshotTarifs, eur, hm, km1, uid, totalTickets } from '.
 import { compressImage, photoCache, usePhotoApi } from '../utils/photos';
 import RecalcModal from './RecalcModal';
 import { TicketThumb, PhotoViewer } from './Tickets';
-import { Modal, Label, NumberField, Segmented, Toggle, DurationField, Button, inputCls } from './ui';
+import { Modal, Label, NumberField, Segmented, Toggle, Button, inputCls } from './ui';
+import TempsField, { modeParDefaut } from './TempsField';
 
 const LIBRE = '__libre__';
 
@@ -42,7 +43,15 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
       kmRetour: kmFor(ch, 'maison'),
       sansKm: false,
       heuresTravail: 0,
+      travailMode: modeParDefaut('travail'),
+      travailDebut: '',
+      travailFin: '',
+      travailPause: '0',
       heuresCourses: 0,
+      coursesMode: modeParDefaut('courses'),
+      coursesDebut: '',
+      coursesFin: '',
+      coursesPause: '0',
       kmCourses: '',
       camion: false,
       nettoyage: false,
@@ -219,8 +228,19 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
 
         {/* Temps */}
         <section className="space-y-3">
-          <DurationField idPrefix="travail" label="Temps de travail" value={f.heuresTravail} onChange={(v) => set({ heuresTravail: v })} />
-          <DurationField idPrefix="courses" label="Temps de courses (magasin, achats)" value={f.heuresCourses} onChange={(v) => set({ heuresCourses: v })} />
+          <TempsField
+            idPrefix="travail"
+            label="Temps de travail"
+            avecPause
+            value={{ mode: f.travailMode, debut: f.travailDebut, fin: f.travailFin, pause: f.travailPause, heures: f.heuresTravail }}
+            onChange={(p) => set(mapTemps('travail', p))}
+          />
+          <TempsField
+            idPrefix="courses"
+            label="Temps de courses (magasin, achats)"
+            value={{ mode: f.coursesMode, debut: f.coursesDebut, fin: f.coursesFin, pause: f.coursesPause, heures: f.heuresCourses }}
+            onChange={(p) => set(mapTemps('courses', p))}
+          />
         </section>
 
         {/* Tickets de caisse */}
@@ -360,6 +380,18 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
       {vue && <PhotoViewer id={vue.id} legende={vue.libelle} onClose={() => setVue(null)} />}
     </Modal>
   );
+}
+
+// { mode, debut, fin, pause, heures } -> champs de la prestation (travailMode, travailDebut… / heuresTravail)
+function mapTemps(prefix, p) {
+  const cap = prefix === 'travail' ? 'Travail' : 'Courses';
+  const out = {};
+  if ('mode' in p) out[`${prefix}Mode`] = p.mode;
+  if ('debut' in p) out[`${prefix}Debut`] = p.debut;
+  if ('fin' in p) out[`${prefix}Fin`] = p.fin;
+  if ('pause' in p) out[`${prefix}Pause`] = p.pause;
+  if ('heures' in p) out[`heures${cap}`] = p.heures;
+  return out;
 }
 
 function Row({ l, v }) {
