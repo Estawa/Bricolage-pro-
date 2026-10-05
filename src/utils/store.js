@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, setDoc, writeBatch } from 'firebase/firestore';
-import { auth, db, firebaseEnabled } from '../firebase';
+import { auth, db, firebaseEnabled, DATA_ROOT } from '../firebase';
 import { DEFAULT_SETTINGS } from './calc';
 import { usePersistentState } from './storage';
 import { localPhotos } from './photos';
@@ -79,6 +79,8 @@ export function useCloudStore(user) {
   const [entries, setEntries] = useState([]);
   const [loadedParts, setLoadedParts] = useState({});
   const [pending, setPending] = useState({});
+  const [erreur, setErreur] = useState(null);
+  const [lent, setLent] = useState(false);
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const settingsRef = useRef(DEFAULT_SETTINGS);
 
@@ -98,26 +100,40 @@ export function useCloudStore(user) {
     setPending({});
     if (!uid || !db) return undefined;
     const opts = { includeMetadataChanges: true };
+    setErreur(null);
+    setLent(false);
     const mark = (part, snap) => {
       setLoadedParts((p) => (p[part] ? p : { ...p, [part]: true }));
       setPending((p) => ({ ...p, [part]: snap.metadata.hasPendingWrites }));
     };
+    // En cas de refus (règles, base absente…) : on affiche l'erreur au lieu de charger sans fin
+    const fail = (part) => (err) => {
+      console.error('Firestore', part, err);
+      setErreur(err?.code || err?.message || 'erreur inconnue');
+      setLoadedParts((p) => ({ ...p, [part]: true }));
+    };
+    // Si le serveur tarde (réseau lent), on ouvre l'appli quand même après 8 s
+    const timer = setTimeout(() => {
+      setLent(true);
+      setLoadedParts({ settings: true, chantiers: true, entries: true });
+    }, 8000);
 
-    const u1 = onSnapshot(doc(db, 'users', uid, 'meta', 'settings'), opts, (snap) => {
+    const u1 = onSnapshot(doc(db, DATA_ROOT, uid, 'meta', 'settings'), opts, (snap) => {
       const data = snap.exists() ? snap.data() : DEFAULT_SETTINGS;
       settingsRef.current = data;
       setSettingsState(data);
       mark('settings', snap);
-    });
-    const u2 = onSnapshot(collection(db, 'users', uid, 'chantiers'), opts, (qs) => {
+    }, fail('settings'));
+    const u2 = onSnapshot(collection(db, DATA_ROOT, uid, 'chantiers'), opts, (qs) => {
       setChantiers(qs.docs.map((d) => ({ ...d.data(), id: d.id })).sort(byNom));
       mark('chantiers', qs);
-    });
-    const u3 = onSnapshot(collection(db, 'users', uid, 'entries'), opts, (qs) => {
+    }, fail('chantiers'));
+    const u3 = onSnapshot(collection(db, DATA_ROOT, uid, 'entries'), opts, (qs) => {
       setEntries(qs.docs.map((d) => ({ ...d.data(), id: d.id })));
       mark('entries', qs);
-    });
+    }, fail('entries'));
     return () => {
+      clearTimeout(timer);
       u1();
       u2();
       u3();
@@ -130,12 +146,12 @@ export function useCloudStore(user) {
       const value = resolve(next, settingsRef.current);
       settingsRef.current = value;
       setSettingsState(value); // affichage immédiat pendant la frappe
-      setDoc(doc(db, 'users', uid, 'meta', 'settings'), clean(value));
+      setDoc(doc(db, DATA_ROOT, uid, 'meta', 'settings'), clean(value));
     },
     [uid]
   );
 
-  const col = (name) => collection(db, 'users', uid, name);
+  const col = (name) => collection(db, DATA_ROOT, uid, name);
 
   const deleteAll = async (name) => {
     const qs = await getDocs(col(name));
@@ -157,11 +173,11 @@ export function useCloudStore(user) {
   const photos = useMemo(
     () => ({
       get: async (id) => {
-        const snap = await getDoc(doc(db, 'users', uid, 'photos', id));
+        const snap = await getDoc(doc(db, DATA_ROOT, uid, 'photos', id));
         return snap.exists() ? snap.data().data : null;
       },
-      set: (id, data) => setDoc(doc(db, 'users', uid, 'photos', id), { data, createdAt: Date.now() }),
-      del: (id) => deleteDoc(doc(db, 'users', uid, 'photos', id)),
+      set: (id, data) => setDoc(doc(db, DATA_ROOT, uid, 'photos', id), { data, createdAt: Date.now() }),
+      del: (id) => deleteDoc(doc(db, DATA_ROOT, uid, 'photos', id)),
     }),
     [uid]
   );
@@ -172,6 +188,8 @@ export function useCloudStore(user) {
   return {
     mode: 'cloud',
     loaded,
+    erreur,
+    lent,
     syncState: !online ? 'offline' : hasPending ? 'pending' : 'synced',
     settings,
     chantiers,
