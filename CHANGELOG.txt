@@ -1,5 +1,12 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.4.0 — 05/10/2026
+- Changement des tarifs en une fois : toutes les prestations ou une sélection (filtres chantier, période, anciens tarifs, cases à cocher)
+- Comparaison de deux tarifs face à face (A / B) : coût par poste, coût total, écart en € et en %
+- Chaque colonne peut reprendre les tarifs enregistrés, les tarifs actuels, ou des valeurs personnalisées à tester
+- Application du tarif A ou B avec confirmation (coût total avant / après)
+- Accès depuis Réglages et depuis la fiche chantier (bouton « Tarifs »)
+
 v1.3.0 — 05/10/2026
 - Temps de travail et temps de courses : au choix, durée directe ou heure de début + heure de fin
 - Durée calculée automatiquement (pause déductible pour le travail ; fin après minuit = lendemain)
