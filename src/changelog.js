@@ -1,6 +1,17 @@
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.4.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.4.0',
+    date: '05/10/2026',
+    items: [
+      'Changement des tarifs en une fois sur toutes les prestations ou une sélection (filtres chantier, période, anciens tarifs)',
+      'Comparaison de deux tarifs face à face (A / B) : coût par poste, coût total, écart en € et en %',
+      'Sources de comparaison : tarifs enregistrés, tarifs actuels ou valeurs personnalisées à tester',
+      'Application du tarif choisi avec confirmation (coût avant / après)',
+      'Accès depuis Réglages et depuis la fiche chantier (bouton « Tarifs »)',
+    ],
+  },
   {
     version: '1.3.0',
     date: '05/10/2026',

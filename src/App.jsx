@@ -15,6 +15,7 @@ import Settings from './components/Settings';
 import ChantierDetail from './components/ChantierDetail';
 import Share from './components/Share';
 import Fiche from './components/Fiche';
+import BulkTarifs from './components/BulkTarifs';
 import { PhotoContext, localPhotos } from './utils/photos';
 import { LoginScreen, SyncBadge } from './components/Account';
 import { Modal, Button, inputCls, Label } from './components/ui';
@@ -49,6 +50,7 @@ export default function App() {
   const [openChantierId, setOpenChantierId] = useState(null);
   const [share, setShare] = useState(null); // liste de prestations à partager
   const [fiche, setFiche] = useState(null); // liste de prestations pour la fiche récap
+  const [bulk, setBulk] = useState(null); // { ids } : comparaison / changement de tarifs en masse
 
   // À chaque connexion / déconnexion, retour au calendrier
   useEffect(() => setTab('calendrier'), [user?.uid]);
@@ -187,6 +189,7 @@ export default function App() {
             onRecalc={(e) => setRecalc(e)}
             onShare={setShare}
             onFiche={setFiche}
+            onTarifs={(list) => setBulk({ ids: list.map((e) => e.id) })}
           />
         )}
         {tab === 'chantiers' && !openChantier && (
@@ -215,6 +218,7 @@ export default function App() {
             user={user}
             syncState={store.syncState}
             onLeaveLocal={() => setModeLocal(false)}
+            onBulk={() => setBulk({ ids: null })}
           />
         )}
       </main>
@@ -267,6 +271,20 @@ export default function App() {
             setShare(null);
             setFiche(l);
           }}
+        />
+      )}
+
+      {bulk && (
+        <BulkTarifs
+          entries={entries}
+          chantiers={chantiers}
+          settings={s}
+          preselectIds={bulk.ids}
+          onApply={(list) => {
+            store.saveEntries(list);
+            setBulk(null);
+          }}
+          onClose={() => setBulk(null)}
         />
       )}
 
