@@ -12,6 +12,10 @@ import RecalcModal from './components/RecalcModal';
 import Chantiers from './components/Chantiers';
 import Bilan from './components/Bilan';
 import Settings from './components/Settings';
+import ChantierDetail from './components/ChantierDetail';
+import Share from './components/Share';
+import Fiche from './components/Fiche';
+import { PhotoContext, localPhotos } from './utils/photos';
 import { LoginScreen, SyncBadge } from './components/Account';
 import { Modal, Button, inputCls, Label } from './components/ui';
 import { APP_VERSION, CHANGELOG } from './changelog';
@@ -42,14 +46,34 @@ export default function App() {
   const [recalc, setRecalc] = useState(null);
   const [showLog, setShowLog] = useState(false);
   const [migrating, setMigrating] = useState(false);
+  const [openChantierId, setOpenChantierId] = useState(null);
+  const [share, setShare] = useState(null); // liste de prestations à partager
+  const [fiche, setFiche] = useState(null); // liste de prestations pour la fiche récap
 
   // À chaque connexion / déconnexion, retour au calendrier
   useEffect(() => setTab('calendrier'), [user?.uid]);
 
   // Sécurité : fusionne avec les réglages par défaut (nouvelles options d'une future version)
   const raw = store.settings || DEFAULT_SETTINGS;
-  const s = { ...DEFAULT_SETTINGS, ...raw, bases: { ...DEFAULT_SETTINGS.bases, ...raw.bases } };
+  const s = {
+    ...DEFAULT_SETTINGS,
+    ...raw,
+    bases: { ...DEFAULT_SETTINGS.bases, ...raw.bases },
+    coordonnees: { ...DEFAULT_SETTINGS.coordonnees, ...raw.coordonnees },
+  };
   const { entries, chantiers } = store;
+  const openChantier = chantiers.find((c) => c.id === openChantierId) || null;
+
+  // Le chantier commun à une liste de prestations (s'il n'y en a qu'un)
+  const chantierDe = (list) => {
+    const ids = [...new Set(list.map((e) => e.chantierId))];
+    return ids.length === 1 ? chantiers.find((c) => c.id === ids[0]) || null : null;
+  };
+
+  const supprimerPrestation = (e) => {
+    store.deleteEntry(e.id);
+    (e.tickets || []).forEach((t) => store.photos.del(t.id));
+  };
 
   const selectDay = (d) => {
     setSelectedDate(d);
@@ -90,7 +114,14 @@ export default function App() {
   const migrer = async () => {
     setMigrating(true);
     try {
-      await cloud.importAll({ settings: local.settings, chantiers: local.chantiers, entries: local.entries });
+      const photos = {};
+      for (const e of local.entries) {
+        for (const t of e.tickets || []) {
+          const d = await localPhotos.get(t.id);
+          if (d) photos[t.id] = d;
+        }
+      }
+      await cloud.importAll({ settings: local.settings, chantiers: local.chantiers, entries: local.entries, photos });
       setModeLocal(false);
     } finally {
       setMigrating(false);
@@ -99,6 +130,7 @@ export default function App() {
   };
 
   return wrap(
+    <PhotoContext.Provider value={store.photos}>
     <div className="min-h-screen bg-orange-50/40 pb-24 text-stone-900 dark:bg-stone-900 dark:text-stone-100">
       {/* En-tête */}
       <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/90 backdrop-blur dark:border-stone-800 dark:bg-stone-900/90">
@@ -134,14 +166,35 @@ export default function App() {
               settings={s}
               onAdd={() => setForm({})}
               onEdit={(entry) => setForm({ entry })}
-              onDelete={(id) => store.deleteEntry(id)}
+              onDelete={supprimerPrestation}
               onDuplicate={(e) => setDup(e)}
               onRecalc={(e) => setRecalc(e)}
+              onShare={setShare}
+              onFiche={setFiche}
             />
           </>
         )}
-        {tab === 'chantiers' && (
+        {tab === 'chantiers' && openChantier && (
+          <ChantierDetail
+            chantier={openChantier}
+            entries={entries}
+            settings={s}
+            onBack={() => setOpenChantierId(null)}
+            onAdd={() => setForm({ chantierId: openChantier.id })}
+            onEdit={(entry) => setForm({ entry })}
+            onDelete={supprimerPrestation}
+            onDuplicate={(e) => setDup(e)}
+            onRecalc={(e) => setRecalc(e)}
+            onShare={setShare}
+            onFiche={setFiche}
+          />
+        )}
+        {tab === 'chantiers' && !openChantier && (
           <Chantiers
+            onOpen={(c) => {
+              setOpenChantierId(c.id);
+              window.scrollTo(0, 0);
+            }}
             chantiers={chantiers}
             saveChantier={store.saveChantier}
             deleteChantier={store.deleteChantier}
@@ -173,7 +226,10 @@ export default function App() {
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => {
+                if (id === 'chantiers') setOpenChantierId(null);
+                setTab(id);
+              }}
               data-testid={`onglet-${id}`}
               className={`flex flex-col items-center gap-0.5 py-2 text-xs font-medium ${
                 tab === id ? 'text-orange-600 dark:text-orange-400' : 'text-stone-400'
@@ -188,8 +244,9 @@ export default function App() {
 
       {form && (
         <EntryForm
-          date={selectedDate}
+          date={form.chantierId ? isoDate(new Date()) : selectedDate}
           entry={form.entry}
+          initialChantierId={form.chantierId}
           chantiers={chantiers}
           settings={s}
           onSave={(e) => {
@@ -199,6 +256,21 @@ export default function App() {
           onClose={() => setForm(null)}
         />
       )}
+
+      {share && (
+        <Share
+          entries={share}
+          settings={s}
+          chantier={chantierDe(share)}
+          onClose={() => setShare(null)}
+          onFiche={(l) => {
+            setShare(null);
+            setFiche(l);
+          }}
+        />
+      )}
+
+      {fiche && <Fiche entries={fiche} settings={s} chantier={chantierDe(fiche)} onClose={() => setFiche(null)} />}
 
       {recalc && (
         <RecalcModal
@@ -217,7 +289,7 @@ export default function App() {
           entry={dup}
           onClose={() => setDup(null)}
           onConfirm={(date) => {
-            store.saveEntry({ ...dup, id: uid(), date });
+            store.saveEntry({ ...dup, id: uid(), date, tickets: [] }); // les photos de tickets ne sont pas dupliquées
             setDup(null);
             selectDay(date);
           }}
@@ -265,6 +337,7 @@ export default function App() {
         </Modal>
       )}
     </div>
+    </PhotoContext.Provider>
   );
 }
 
@@ -281,7 +354,7 @@ function DuplicateModal({ entry, onClose, onConfirm }) {
       }
     >
       <p className="mb-3 text-sm text-stone-500">
-        « {entry.chantierNom} » du {longDate(entry.date)} — copiée à l’identique (trajets, temps, camion…) sur le jour choisi.
+        « {entry.chantierNom} » du {longDate(entry.date)} — copiée à l’identique (trajets, temps, camion…) sur le jour choisi, sans les photos de tickets.
       </p>
       <label className="block">
         <Label>Nouveau jour</Label>

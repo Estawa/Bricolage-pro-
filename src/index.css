@@ -8,3 +8,49 @@ html {
 body {
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
+
+/* ---------- Fiche récapitulative : impression / PDF ---------- */
+.fiche-page {
+  color: #000;
+  background: #fff;
+}
+.no-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.fiche-page tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body.fiche-ouverte > #root {
+    display: none !important;
+  }
+  .fiche-overlay {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .fiche-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .fiche-page img {
+    filter: grayscale(100%);
+  }
+  .fiche-page * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
