@@ -11,6 +11,8 @@ export const DEFAULT_SETTINGS = {
   camionForfait: 30, // € par jour d'utilisation du camion
   camionKm: 0.3, // € supplément par km fait avec le camion
   nettoyageForfait: 40, // € nettoyage complet du camion
+  tauxTrajet: 20, // €/h temps de trajet (aller + retour)
+  trajetDefaut: 'tarif', // 'tarif' = compté au tarif trajet, 'offert' = non compté
   coordonnees: { nom: 'Christophe Guilhem', telephone: '', email: '', adresse: 'Champcueil' },
   bases: {
     maison: { label: 'Maison', adresse: 'Champcueil, 91750, France', lat: null, lon: null },
@@ -26,8 +28,8 @@ export const DEFAULT_SETTINGS = {
 // Tarifs « figés » dans chaque prestation au moment de l'enregistrement :
 // si vous changez vos tarifs plus tard, les journées déjà saisies ne bougent pas.
 export function snapshotTarifs(settings) {
-  const { tauxTravail, tauxCourses, coutKm, camionForfait, camionKm, nettoyageForfait } = settings;
-  return { tauxTravail, tauxCourses, coutKm, camionForfait, camionKm, nettoyageForfait };
+  const { tauxTravail, tauxCourses, coutKm, camionForfait, camionKm, nettoyageForfait, tauxTrajet } = settings;
+  return { tauxTravail, tauxCourses, coutKm, camionForfait, camionKm, nettoyageForfait, tauxTrajet: tauxTrajet ?? 20 };
 }
 
 const n = (v) => {
@@ -48,19 +50,33 @@ export function totalTickets(e) {
 export const shortDate = (s) =>
   parseIso(s).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
+// Temps de trajet (heures) : aller + retour, nul si « aucun kilométrage »
+export function heuresTrajet(e) {
+  if (e.sansKm) return 0;
+  return (n(e.minAller) + n(e.minRetour)) / 60;
+}
+
 export function computeEntry(e) {
   const t = e.tarifs || {};
   const km = kmTotal(e);
-  const hT = n(e.heuresTravail);
+  const hTrajet = heuresTrajet(e);
+  const hTsaisi = n(e.heuresTravail);
+  // Si le temps saisi inclut le trajet, on le retire pour obtenir le travail effectif
+  const hT = e.trajetDeduit ? Math.max(0, hTsaisi - hTrajet) : hTsaisi;
   const hC = n(e.heuresCourses);
+  const valeurTrajet = hTrajet * n(t.tauxTrajet);
+  const trajetFacture = (e.trajetMode || 'tarif') === 'tarif';
+  const trajet = trajetFacture ? valeurTrajet : 0;
+  // « cadeau » : ce que le trajet aurait coûté s'il avait été facturé (non compté dans le total)
+  const trajetOffert = trajetFacture ? 0 : valeurTrajet;
   const travail = hT * n(t.tauxTravail);
   const courses = hC * n(t.tauxCourses);
   const deplacement = km * n(t.coutKm);
   const camion = e.camion ? n(t.camionForfait) + km * n(t.camionKm) : 0;
   const nettoyage = e.camion && e.nettoyage ? n(t.nettoyageForfait) : 0;
   const fournitures = n(e.fournitures);
-  const total = travail + courses + deplacement + camion + nettoyage + fournitures;
-  return { km, hT, hC, travail, courses, deplacement, camion, nettoyage, fournitures, total };
+  const total = travail + courses + trajet + deplacement + camion + nettoyage + fournitures;
+  return { km, hT, hC, hTrajet, travail, courses, trajet, trajetOffert, deplacement, camion, nettoyage, fournitures, total };
 }
 
 export function sumEntries(entries) {
@@ -69,8 +85,11 @@ export function sumEntries(entries) {
     km: 0,
     hT: 0,
     hC: 0,
+    hTrajet: 0,
     travail: 0,
     courses: 0,
+    trajet: 0,
+    trajetOffert: 0,
     deplacement: 0,
     camion: 0,
     nettoyage: 0,

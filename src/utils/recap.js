@@ -34,6 +34,7 @@ export function resumeLigne(e) {
   if (c.hT) parts.push(`Main-d'œuvre ${hm(c.hT)}${hT ? ` (${hT})` : ''}`);
   if (c.hC) parts.push(`Courses ${hm(c.hC)}${hC ? ` (${hC})` : ''}`);
   parts.push(e.sansKm ? 'Sans km' : km1(c.km));
+  if (c.hTrajet) parts.push(`Trajet ${hm(c.hTrajet)}${e.trajetMode === 'offert' ? ` (offert, valeur ${eur(c.trajetOffert)})` : ''}`);
   if (e.camion) parts.push('Camion');
   if (e.nettoyage) parts.push('Nettoyage camion');
   if (c.fournitures) parts.push(`Fournitures ${eur(c.fournitures)}`);
@@ -45,6 +46,7 @@ export function detailMontants(e) {
   return [
     ["Main-d'œuvre", c.travail],
     ['Courses', c.courses],
+    ['Temps de trajet', c.trajet],
     ['Déplacement', c.deplacement],
     ['Camion', c.camion],
     ['Nettoyage camion', c.nettoyage],
@@ -64,14 +66,25 @@ export function postes(entries) {
   const tT = unique('tauxTravail');
   const tC = unique('tauxCourses');
   const tK = unique('coutKm');
+  const tTr = unique('tauxTrajet');
+  // temps de trajet facturé / non facturé, séparés pour la fiche
+  let hTrFacture = 0;
+  let hTrOffert = 0;
+  for (const e of entries) {
+    const c = computeEntry(e);
+    if (e.trajetMode === 'offert') hTrOffert += c.hTrajet;
+    else hTrFacture += c.hTrajet;
+  }
   return [
     { libelle: "Main-d'œuvre", qte: hm(s.hT), pu: tT != null ? `${eur(tT)} / h` : '', montant: s.travail },
     { libelle: 'Temps de courses', qte: hm(s.hC), pu: tC != null ? `${eur(tC)} / h` : '', montant: s.courses },
+    { libelle: 'Temps de trajet', qte: hm(hTrFacture), pu: tTr != null ? `${eur(tTr)} / h` : '', montant: s.trajet },
+    { libelle: 'Temps de trajet offert', qte: hm(hTrOffert), pu: 'offert', montant: 0, valeur: s.trajetOffert, garder: hTrOffert > 0 },
     { libelle: 'Déplacements', qte: km1(s.km), pu: tK != null ? `${eur(tK)} / km` : '', montant: s.deplacement },
     { libelle: 'Utilisation du camion', qte: nbCamion ? `${nbCamion} fois` : '', pu: '', montant: s.camion },
     { libelle: 'Nettoyage du camion', qte: nbNett ? `${nbNett} fois` : '', pu: '', montant: s.nettoyage },
     { libelle: 'Fournitures', qte: '', pu: '', montant: s.fournitures },
-  ].filter((p) => p.montant > 0);
+  ].filter((p) => p.montant > 0 || p.garder);
 }
 
 export function buildRecapText(entries, settings, { details = true, chantier = null, nbTickets = 0 } = {}) {
@@ -108,6 +121,7 @@ export function buildRecapText(entries, settings, { details = true, chantier = n
     for (const p of postes(list)) lignes.push(`${p.libelle} : ${eur(p.montant)}`);
   }
   lignes.push(`COÛT TOTAL : ${eur(s.total)}`);
+  if (s.trajetOffert > 0) lignes.push(`🎁 Temps de trajet offert : ${eur(s.trajetOffert)} (non compté)`);
   if (nbTickets) lignes.push(`🧾 ${nbTickets} photo${nbTickets > 1 ? 's' : ''} de ticket${nbTickets > 1 ? 's' : ''} jointe${nbTickets > 1 ? 's' : ''}`);
   const nom = settings?.coordonnees?.nom;
   if (nom) {

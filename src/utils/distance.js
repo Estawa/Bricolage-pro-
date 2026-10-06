@@ -23,6 +23,17 @@ export async function routeKm(from, to) {
   return Math.round(data.routes[0].distance / 100) / 10; // km, 1 décimale
 }
 
+// Distance (km) + durée (minutes) en voiture
+export async function routeKmMin(from, to) {
+  const url = `https://router.project-osrm.org/route/v1/driving/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Service d’itinéraire indisponible');
+  const data = await res.json();
+  if (!data.routes?.length) throw new Error('Aucun itinéraire trouvé');
+  const r = data.routes[0];
+  return { km: Math.round(r.distance / 100) / 10, min: Math.max(1, Math.round(r.duration / 60)) };
+}
+
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Retourne { kmMaison, kmTravail, coords, basesCoords }
@@ -38,7 +49,7 @@ export async function distancesDepuisBases(adresseChantier, bases) {
     }
   }
   const coords = await geocode(adresseChantier);
-  const kmMaison = await routeKm(basesCoords.maison, coords);
-  const kmTravail = await routeKm(basesCoords.travail, coords);
-  return { kmMaison, kmTravail, coords, basesCoords };
+  const m = await routeKmMin(basesCoords.maison, coords);
+  const t = await routeKmMin(basesCoords.travail, coords);
+  return { kmMaison: m.km, kmTravail: t.km, minMaison: m.min, minTravail: t.min, coords, basesCoords };
 }
