@@ -1,5 +1,14 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.5.0 — 06/10/2026
+- Temps de trajet moyen par chantier (depuis Maison et depuis Travail), calcul automatique avec les km
+- Coût horaire du temps de trajet dans les Réglages + choix par défaut (facturé / non facturé)
+- Dans chaque prestation : trajet facturé ou non facturé, avec les deux coûts côte à côte
+- Trajet non facturé : valeur du « cadeau » affichée partout (prestation, compteurs, chantier, bilan, fiche, partage, CSV)
+- En saisie « Horaires » (porte à porte), le trajet est retiré automatiquement du temps de travail (décochable)
+- Fiche de coût : ligne « Temps de trajet », ligne barrée pour le trajet offert, mention « Geste commercial »
+- Comparaison A / B : tarif trajet + choix facturé / non facturé, application en une fois
+
 v1.4.2 — 06/10/2026
 - Plus de chargement sans fin : l'erreur Firebase s'affiche ; ouverture au bout de 8 s si le réseau est lent
 

@@ -23,7 +23,14 @@ Données synchronisées dans Firestore (avec cache hors ligne), ou dans le tél�
    (ex. `bricolage-pro.vercel.app`).
 7. Pousser sur GitHub : Vercel redéploie tout seul. Au premier lancement, « Créer mon compte ».
 
-Données Firestore : `users/{uid}/meta/settings`, `users/{uid}/chantiers/{id}`, `users/{uid}/entries/{id}`, `users/{uid}/photos/{id}`.
+Données Firestore : `bricolagePro/{uid}/meta/settings`, `bricolagePro/{uid}/chantiers/{id}`, `bricolagePro/{uid}/entries/{id}`, `bricolagePro/{uid}/photos/{id}`.
+
+### Utiliser un projet Firebase déjà existant (limite de projets atteinte)
+Les données de l'appli sont rangées sous `bricolagePro/…`, elles ne se mélangent pas avec celles d'une autre appli.
+1. Dans le projet existant : Paramètres du projet → Vos applications → `</>` → nouvelle appli Web « Bricolage Pro » → copier sa config.
+2. Authentication : vérifier que « Adresse e-mail/Mot de passe » est activé (n'affecte pas les autres applis).
+3. Firestore → Règles : **ajouter** le bloc `match /bricolagePro/...` de `firestore.rules` à côté des règles existantes (ne rien supprimer).
+4. Authentication → Paramètres → Domaines autorisés : ajouter l'adresse Vercel de Bricolage Pro.
 Les photos de tickets sont compressées dans le téléphone et rangées dans Firestore : **pas besoin d'activer Firebase Storage**
 (qui exige désormais le forfait payant). Le forfait gratuit offre 1 Go, soit plusieurs milliers de tickets.
 

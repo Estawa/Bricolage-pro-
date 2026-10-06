@@ -1,9 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Chaque compte ne voit et ne modifie que ses propres données
-    match /users/{uid}/{document=**} {
+
+    // ===== Bricolage Pro =====
+    // Si le projet Firebase sert déjà à une autre appli, NE PAS remplacer ses règles :
+    // copier seulement ce bloc « match /bricolagePro/... » à l'intérieur de
+    // « match /databases/{database}/documents { ... } », à côté des règles existantes.
+    match /bricolagePro/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
+
   }
 }
