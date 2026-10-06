@@ -1,6 +1,14 @@
-export const APP_VERSION = '1.5.1';
+export const APP_VERSION = '1.5.2';
 
 export const CHANGELOG = [
+  {
+    version: '1.5.2',
+    date: '06/10/2026',
+    items: [
+      'Fiche de coût : alerte quand les prestations n’ont pas de temps de trajet, et bouton « Compléter depuis le chantier »',
+      'En ajoutant des temps de trajet à un chantier, l’appli propose de les reporter dans ses prestations déjà saisies',
+    ],
+  },
   {
     version: '1.5.1',
     date: '06/10/2026',

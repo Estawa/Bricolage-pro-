@@ -16,6 +16,7 @@ import ChantierDetail from './components/ChantierDetail';
 import Share from './components/Share';
 import Fiche from './components/Fiche';
 import BulkTarifs from './components/BulkTarifs';
+import { trajetManquant, completerTrajet } from './utils/trajet';
 import { PhotoContext, localPhotos } from './utils/photos';
 import { LoginScreen, SyncBadge } from './components/Account';
 import { Modal, Button, inputCls, Label } from './components/ui';
@@ -207,7 +208,14 @@ export default function App() {
               window.scrollTo(0, 0);
             }}
             chantiers={chantiers}
-            saveChantier={store.saveChantier}
+            saveChantier={(c) => {
+              store.saveChantier(c);
+              // Temps de trajet ajoutés au chantier : proposer de compléter les prestations existantes
+              const manquantes = entries.filter((e) => e.chantierId === c.id && trajetManquant(e, [c]));
+              if (manquantes.length && confirm(`Ajouter ce temps de trajet aux ${manquantes.length} prestation(s) déjà saisies sur ce chantier ?`)) {
+                store.saveEntries(manquantes.map((e) => completerTrajet(e, [c], s)));
+              }
+            }}
             deleteChantier={store.deleteChantier}
             entries={entries}
             settings={s}
@@ -301,6 +309,7 @@ export default function App() {
           entries={fiche}
           settings={s}
           chantier={chantierDe(fiche)}
+          chantiers={chantiers}
           onClose={() => setFiche(null)}
           onSaveChoix={(list) => {
             store.saveEntries(list);
