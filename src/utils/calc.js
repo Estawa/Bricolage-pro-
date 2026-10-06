@@ -71,12 +71,16 @@ export function computeEntry(e) {
   const trajetOffert = trajetFacture ? 0 : valeurTrajet;
   const travail = hT * n(t.tauxTravail);
   const courses = hC * n(t.tauxCourses);
-  const deplacement = km * n(t.coutKm);
+  // Kilomètres offerts (kmOffert) : non comptés, mais leur valeur reste visible comme « cadeau »
+  const valeurKm = km * n(t.coutKm);
+  const deplacement = e.kmOffert ? 0 : valeurKm;
+  const deplacementOffert = e.kmOffert ? valeurKm : 0;
   const camion = e.camion ? n(t.camionForfait) + km * n(t.camionKm) : 0;
   const nettoyage = e.camion && e.nettoyage ? n(t.nettoyageForfait) : 0;
   const fournitures = n(e.fournitures);
   const total = travail + courses + trajet + deplacement + camion + nettoyage + fournitures;
-  return { km, hT, hC, hTrajet, travail, courses, trajet, trajetOffert, deplacement, camion, nettoyage, fournitures, total };
+  const offert = trajetOffert + deplacementOffert;
+  return { km, hT, hC, hTrajet, travail, courses, trajet, trajetOffert, deplacement, deplacementOffert, offert, camion, nettoyage, fournitures, total };
 }
 
 export function sumEntries(entries) {
@@ -90,6 +94,8 @@ export function sumEntries(entries) {
     courses: 0,
     trajet: 0,
     trajetOffert: 0,
+    deplacementOffert: 0,
+    offert: 0,
     deplacement: 0,
     camion: 0,
     nettoyage: 0,
