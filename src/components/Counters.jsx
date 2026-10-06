@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Hammer, ShoppingCart, Route, Euro } from 'lucide-react';
 import { sumEntries, eur, hm, km1, MOIS, parseIso } from '../utils/calc';
 import { Segmented } from './ui';
+import { ajustementsChantiers, totauxAjustements } from '../utils/ajustements';
 
 function Tile({ icon, label, value, accent, sub }) {
   // Petit effet visuel quand la valeur change
@@ -32,7 +33,7 @@ function Tile({ icon, label, value, accent, sub }) {
   );
 }
 
-export default function Counters({ entries, selectedDate, viewMonth }) {
+export default function Counters({ entries, chantiers = [], selectedDate, viewMonth }) {
   const [scope, setScope] = useState('jour');
 
   const d = parseIso(selectedDate);
@@ -42,7 +43,16 @@ export default function Counters({ entries, selectedDate, viewMonth }) {
     if (scope === 'mois') return e.date.startsWith(ym);
     return e.date.startsWith(String(viewMonth.year));
   });
-  const s = sumEntries(filtered);
+  const s0 = sumEntries(filtered);
+  // ajouts / déductions « sans date » des chantiers, comptés au jour/mois/année de leur saisie
+  const extra = ajustementsChantiers(chantiers).filter((a) => {
+    if (!a.date) return false;
+    if (scope === 'jour') return a.date === selectedDate;
+    if (scope === 'mois') return a.date.startsWith(ym);
+    return a.date.startsWith(String(viewMonth.year));
+  });
+  const tx = totauxAjustements(extra);
+  const s = { ...s0, total: s0.total + tx.net, ajouts: s0.ajouts + tx.ajouts, deductions: s0.deductions + tx.deductions };
 
   const scopeLabel =
     scope === 'jour'
@@ -78,7 +88,11 @@ export default function Counters({ entries, selectedDate, viewMonth }) {
           icon={<Euro size={14} />}
           label="Facturation"
           value={eur(s.total)}
-          sub={s.offert > 0 ? `🎁 offert : ${eur(s.offert)}` : null}
+          sub={
+            [s.offert > 0 ? `🎁 offert : ${eur(s.offert)}` : null, s.deductions > 0 ? `− déduit : ${eur(s.deductions)}` : null]
+              .filter(Boolean)
+              .join(' · ') || null
+          }
           accent="bg-orange-600"
         />
       </div>

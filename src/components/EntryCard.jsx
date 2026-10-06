@@ -81,6 +81,11 @@ export default function EntryCard({ entry: e, settings, showDate, showChantier =
           </Chip>
         )}
         {c.fournitures > 0 && <Chip>📦 {eur(c.fournitures)}</Chip>}
+        {(e.ajustements || []).filter((a) => parseFloat(a.montant)).map((a) => (
+          <Chip key={a.id}>
+            {a.type === 'deduction' ? '−' : '+'} {a.libelle || (a.type === 'deduction' ? 'déduction' : 'ajout')} {eur(Math.abs(parseFloat(a.montant)))}
+          </Chip>
+        ))}
         {e.tickets?.length > 0 && (
           <Chip>
             <Receipt size={12} /> {e.tickets.length}

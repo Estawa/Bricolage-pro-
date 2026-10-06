@@ -6,6 +6,7 @@ import RecalcModal from './RecalcModal';
 import { TicketThumb, PhotoViewer } from './Tickets';
 import { Modal, Label, NumberField, Segmented, Toggle, Button, inputCls } from './ui';
 import TempsField, { modeParDefaut } from './TempsField';
+import Ajustements from './Ajustements';
 
 const LIBRE = '__libre__';
 
@@ -37,6 +38,8 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
       const existe = chantiers.some((c) => c.id === entry.chantierId);
       return {
         tickets: [],
+      ajustements: [],
+        ajustements: [],
         sansKm: false,
         minAller: '',
         minRetour: '',
@@ -433,6 +436,13 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
           </label>
         </section>
 
+        {/* Ajouts / déductions libres */}
+        <Ajustements
+          value={f.ajustements || []}
+          onChange={(v) => set({ ajustements: v })}
+          aide="Ex. : + location de matériel avancée · − repas offert par le client"
+        />
+
         {/* Détail du calcul */}
         <section className="rounded-2xl border border-orange-200 bg-orange-50/60 p-3 text-sm dark:border-orange-900 dark:bg-orange-950/30">
           <h3 className="mb-2 font-semibold">Détail du calcul</h3>
@@ -466,6 +476,11 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
           {f.camion && <Row l="Camion (forfait + km)" v={calc.camion} />}
           {calc.nettoyage > 0 && <Row l="Nettoyage camion" v={calc.nettoyage} />}
           {calc.fournitures > 0 && <Row l="Fournitures" v={calc.fournitures} />}
+          {(f.ajustements || []).map((a) =>
+            parseFloat(a.montant) ? (
+              <Row key={a.id} l={`${a.type === 'deduction' ? '−' : '+'} ${a.libelle || (a.type === 'deduction' ? 'Déduction' : 'Ajout')}`} v={(a.type === 'deduction' ? -1 : 1) * Math.abs(parseFloat(a.montant))} />
+            ) : null
+          )}
           <div className="mt-2 flex justify-between border-t border-orange-200 pt-2 font-bold dark:border-orange-900">
             <span>Total</span>
             <span className="tabular-nums">{eur(calc.total)}</span>

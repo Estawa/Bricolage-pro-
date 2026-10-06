@@ -3,16 +3,20 @@ import { Download } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1, MOIS } from '../utils/calc';
 import { downloadFile } from '../utils/storage';
 import { horairesTravail, horairesCourses } from '../utils/recap';
+import { ajustementsChantiers, totauxAjustements, montantAjustement } from '../utils/ajustements';
 import { Card, Segmented, Button, inputCls } from './ui';
 
-export default function Bilan({ entries, viewMonth, settings }) {
+export default function Bilan({ entries, chantiers = [], viewMonth, settings }) {
   const [mode, setMode] = useState('mois');
   const [year, setYear] = useState(viewMonth.year);
   const [month, setMonth] = useState(viewMonth.month);
 
   const prefix = mode === 'mois' ? `${year}-${String(month + 1).padStart(2, '0')}` : String(year);
   const list = entries.filter((e) => e.date.startsWith(prefix)).sort((a, b) => a.date.localeCompare(b.date));
-  const s = sumEntries(list);
+  const extra = ajustementsChantiers(chantiers).filter((a) => a.date && a.date.startsWith(prefix));
+  const tx = totauxAjustements(extra);
+  const s0 = sumEntries(list);
+  const s = { ...s0, total: s0.total + tx.net, ajouts: s0.ajouts + tx.ajouts, deductions: s0.deductions + tx.deductions };
 
   // Regroupement par chantier
   const groups = {};
@@ -20,8 +24,13 @@ export default function Bilan({ entries, viewMonth, settings }) {
     const k = e.chantierId || `libre:${e.chantierNom}`;
     (groups[k] ||= { nom: e.chantierNom || 'Chantier', items: [] }).items.push(e);
   }
-  const parChantier = Object.values(groups)
-    .map((g) => ({ nom: g.nom, ...sumEntries(g.items) }))
+  for (const a of extra) (groups[a.chantierId] ||= { nom: a.chantierNom, items: [] });
+  const parChantier = Object.entries(groups)
+    .map(([k, g]) => {
+      const sg = sumEntries(g.items);
+      const tg = totauxAjustements(extra.filter((a) => a.chantierId === k));
+      return { nom: g.nom, ...sg, total: sg.total + tg.net };
+    })
     .sort((a, b) => b.total - a.total);
 
   const years = [...new Set([viewMonth.year, new Date().getFullYear(), ...entries.map((e) => +e.date.slice(0, 4))])].sort();
@@ -32,7 +41,7 @@ export default function Bilan({ entries, viewMonth, settings }) {
     const head = [
       'Date', 'Chantier', 'Départ', 'Retour', 'Heures travail', 'Horaires travail', 'Heures courses', 'Horaires courses', 'Heures trajet', 'Trajet facturé', 'Trajet offert €', 'Km offerts €', 'Km',
       'Camion', 'Nettoyage', 'Travail €', 'Courses €', 'Trajet €', 'Déplacement €', 'Camion €',
-      'Nettoyage €', 'Fournitures €', 'Total €', 'Tickets', 'Montant tickets €', 'Travaux réalisés',
+      'Nettoyage €', 'Fournitures €', 'Ajouts €', 'Déductions €', 'Total €', 'Tickets', 'Montant tickets €', 'Travaux réalisés',
     ];
     const rows = list.map((e) => {
       const c = computeEntry(e);
@@ -44,11 +53,20 @@ export default function Bilan({ entries, viewMonth, settings }) {
         num(c.hT), horairesTravail(e), num(c.hC), horairesCourses(e), num(c.hTrajet), c.hTrajet ? (e.trajetMode === 'offert' ? 'non' : 'oui') : '', num(c.trajetOffert), num(c.deplacementOffert), num(c.km),
         e.camion ? 'oui' : 'non', e.nettoyage ? 'oui' : 'non',
         num(c.travail), num(c.courses), num(c.trajet), num(c.deplacement), num(c.camion),
-        num(c.nettoyage), num(c.fournitures), num(c.total),
+        num(c.nettoyage), num(c.fournitures), num(c.ajouts), num(c.deductions), num(c.total),
         (e.tickets || []).length, num((e.tickets || []).reduce((a, t) => a + (parseFloat(t.montant) || 0), 0)),
         (e.description || '').replace(/\s+/g, ' '),
       ];
     });
+    for (const a of extra) {
+      const m = montantAjustement(a);
+      const row = head.map(() => '');
+      row[0] = a.date.split('-').reverse().join('/');
+      row[1] = a.chantierNom;
+      row[head.indexOf('Total €')] = num(a.type === 'deduction' ? -m : m);
+      row[head.length - 1] = `${a.type === 'deduction' ? 'À déduire' : 'À ajouter'} (sans date) : ${a.libelle || ''}`;
+      rows.push(row);
+    }
     const csv = [head, ...rows].map((r) => r.map((x) => `"${String(x ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
     downloadFile(`bricolage-${prefix}.csv`, '﻿' + csv, 'text/csv;charset=utf-8');
   };
@@ -90,6 +108,8 @@ export default function Bilan({ entries, viewMonth, settings }) {
         <Line l="Camion" v={s.camion} />
         <Line l="Nettoyage camion" v={s.nettoyage} />
         <Line l="Fournitures" v={s.fournitures} />
+        {s.ajouts > 0 && <Line l="Ajouts" v={s.ajouts} />}
+        {s.deductions > 0 && <Line l="Déductions" v={-s.deductions} />}
         <div className="mt-2 flex justify-between border-t border-stone-200 pt-2 text-lg font-bold dark:border-stone-700">
           <span>Total</span>
           <span className="tabular-nums text-orange-700 dark:text-orange-400">{eur(s.total)}</span>
@@ -121,7 +141,7 @@ export default function Bilan({ entries, viewMonth, settings }) {
         </Card>
       )}
 
-      <Button variant="ghost" className="w-full" onClick={exportCsv} disabled={!list.length}>
+      <Button variant="ghost" className="w-full" onClick={exportCsv} disabled={!list.length && !extra.length}>
         <Download size={18} /> Exporter le détail (tableur CSV)
       </Button>
     </div>

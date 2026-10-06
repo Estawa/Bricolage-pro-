@@ -4,12 +4,15 @@ import { sumEntries, eur, hm, km1, MOIS, parseIso } from '../utils/calc';
 import { sortByDate } from '../utils/recap';
 import { Card, Button } from './ui';
 import EntryCard from './EntryCard';
+import { totauxAjustements } from '../utils/ajustements';
 
 // Toutes les prestations d'un chantier, modifiables, avec sélection pour partage / fiche
 export default function ChantierDetail({ chantier, entries, settings, onBack, onAdd, onEdit, onDelete, onDuplicate, onRecalc, onShare, onFiche, onTarifs }) {
   const list = useMemo(() => sortByDate(entries.filter((e) => e.chantierId === chantier.id)), [entries, chantier.id]);
   const [sel, setSel] = useState(() => new Set());
-  const s = sumEntries(list);
+  const s0 = sumEntries(list);
+  const tx = totauxAjustements(chantier.ajustements || []);
+  const s = { ...s0, total: s0.total + tx.net, ajouts: s0.ajouts + tx.ajouts, deductions: s0.deductions + tx.deductions };
   const nbTickets = list.reduce((a, e) => a + (e.tickets?.length || 0), 0);
 
   const selection = list.filter((e) => sel.has(e.id));
@@ -60,6 +63,8 @@ export default function ChantierDetail({ chantier, entries, settings, onBack, on
         <Stat l="Tickets" v={nbTickets} />
         <Stat l="Trajet facturé" v={eur(s.trajet)} />
         {s.offert > 0 && <Stat l="🎁 Offert" v={eur(s.offert)} />}
+        {s.ajouts > 0 && <Stat l="+ Ajouts" v={eur(s.ajouts)} />}
+        {s.deductions > 0 && <Stat l="− Déductions" v={eur(s.deductions)} />}
       </Card>
 
       <Button className="w-full" onClick={onAdd} data-testid="ajouter-chantier">

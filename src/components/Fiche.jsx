@@ -5,11 +5,13 @@ import { computeEntry, sumEntries, eur, hm, km1 } from '../utils/calc';
 import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses } from '../utils/recap';
 import { usePhoto } from '../utils/photos';
 import { trajetManquant, completerTrajet } from '../utils/trajet';
+import { totauxAjustements } from '../utils/ajustements';
+import Ajustements from './Ajustements';
 import { isoDate } from '../utils/calc';
 
 // Fiche récapitulative « style facturation » — se termine par le COÛT TOTAL (pas de « net à payer »)
 // Mise en page noir et blanc, lignes jamais coupées entre deux pages à l'impression.
-export default function Fiche({ entries, settings, chantier, chantiers = [], onClose, onSaveChoix }) {
+export default function Fiche({ entries, settings, chantier, chantiers = [], onClose, onSaveChoix, onSaveChantier }) {
   const [detail, setDetail] = useState(true);
   const [annexe, setAnnexe] = useState(true);
   // Choix appliqués à la fiche : 'prestation' (comme saisi), 'tarif' (tout facturé), 'offert' (tout offert)
@@ -28,6 +30,11 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
   const totalSaisi = sumEntries(original).total;
   const modifie = optTrajet !== 'prestation' || optKm !== 'prestation';
   const sansTrajet = sumEntries(original).hTrajet === 0;
+  // Ajouts / déductions « sans date » du chantier
+  const [avecExtra, setAvecExtra] = useState(true);
+  const extraTous = chantier?.ajustements || [];
+  const extra = avecExtra ? extraTous : [];
+  const tx = totauxAjustements(extra);
   const aCompleter = original.filter((e) => trajetManquant(e, chantiers));
 
   useEffect(() => {
@@ -42,7 +49,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
   const tickets = list.flatMap((e) => (e.tickets || []).map((t) => ({ ...t, date: e.date })));
 
   const partagerTexte = async () => {
-    const texte = buildRecapText(list, settings, { details: detail, chantier });
+    const texte = buildRecapText(list, settings, { details: detail, chantier, extra });
     try {
       if (navigator.share) await navigator.share({ title: `Récapitulatif — ${nomChantier}`, text: texte });
       else {
@@ -130,7 +137,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
         )}
         <div className="mx-auto mt-2 flex max-w-3xl flex-wrap items-center gap-3 rounded-xl bg-stone-100 px-3 py-2 text-sm">
           <span>
-            Coût total : <b className="tabular-nums" data-testid="fiche-total-barre">{eur(s.total)}</b>
+            Coût total : <b className="tabular-nums" data-testid="fiche-total-barre">{eur(s.total + tx.net)}</b>
           </span>
           {s.offert > 0 && <span className="font-semibold text-emerald-700">🎁 offert : {eur(s.offert)}</span>}
           {modifie && (
@@ -156,6 +163,27 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
           )}
         </div>
       </div>
+
+      {chantier && onSaveChantier && (
+        <div className="no-print mx-auto mt-3 max-w-3xl px-3">
+          <div className="rounded-2xl bg-white p-3 shadow">
+            <Ajustements
+              compact
+              testid="fiche-ajust"
+              titre="Ajouts / déductions sans date (chantier)"
+              aide="Quand vous ne connaissez plus la date. Enregistrés avec le chantier et comptés au mois de leur saisie."
+              value={extraTous}
+              onChange={(v) => onSaveChantier({ ...chantier, ajustements: v })}
+            />
+            {extraTous.length > 0 && (
+              <label className="mt-2 flex items-center gap-2 text-sm text-stone-700">
+                <input type="checkbox" className="h-4 w-4 accent-orange-600" checked={avecExtra} onChange={(e) => setAvecExtra(e.target.checked)} />
+                Les inclure dans cette fiche
+              </label>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* La fiche */}
       <div className="fiche-page mx-auto my-4 max-w-3xl bg-white p-6 text-[13px] leading-snug text-black shadow-lg sm:p-10">
@@ -211,6 +239,11 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
                         .filter(Boolean)
                         .join(' · ')}
                     </div>
+                    {(e.ajustements || []).filter((a) => parseFloat(a.montant)).map((a) => (
+                      <div key={a.id} className="mt-0.5 text-[12px]">
+                        {a.type === 'deduction' ? '− À déduire' : '+ À ajouter'} : {a.libelle || '—'} ({eur(Math.abs(parseFloat(a.montant)))})
+                      </div>
+                    ))}
                     {detail && (
                       <div className="mt-0.5 text-[11px] text-stone-600">
                         {detailMontants(e)
@@ -230,7 +263,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
           <h2 className="mb-2 text-sm font-bold uppercase">Récapitulatif</h2>
           <table className="w-full border-collapse">
             <tbody>
-              {postes(list).map((p) => (
+              {postes(list, extra).map((p) => (
                 <tr key={p.libelle} className="border-b border-stone-400">
                   <td className="py-1.5 pr-2">{p.libelle}</td>
                   <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums">{p.qte}</td>
@@ -240,6 +273,8 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
                       <span>
                         <s>{eur(p.valeur)}</s> 0,00&nbsp;€
                       </span>
+                    ) : p.ajust ? (
+                      `${p.montant < 0 ? '−' : '+'} ${eur(Math.abs(p.montant))}`
                     ) : (
                       eur(p.montant)
                     )}
@@ -251,7 +286,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
                   COÛT TOTAL
                 </td>
                 <td className="py-2 text-right tabular-nums" data-testid="fiche-total">
-                  {eur(s.total)}
+                  {eur(s.total + tx.net)}
                 </td>
               </tr>
               {s.offert > 0 && (
