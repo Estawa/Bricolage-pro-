@@ -1,5 +1,9 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.5.2 — 06/10/2026
+- Fiche de coût : alerte si aucune prestation n'a de temps de trajet + bouton « Compléter depuis le chantier »
+- Ajout des temps de trajet à un chantier : proposition de les reporter dans les prestations déjà saisies
+
 v1.5.1 — 06/10/2026
 - Fiche de coût : sélecteurs « Temps de trajet » et « Kilomètres » (selon prestations / tout facturé / tout offert), coût total recalculé en direct
 - « Enregistrer ces choix » reporte la sélection dans les prestations (avec confirmation)
