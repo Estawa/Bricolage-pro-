@@ -1,5 +1,5 @@
 // Service worker simple : met en cache l'appli pour un usage hors ligne.
-const CACHE = 'bricolage-pro-v1.4.2';
+const CACHE = 'bricolage-pro-v1.5.0';
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/index.html', '/manifest.webmanifest', '/icon.svg'])));
