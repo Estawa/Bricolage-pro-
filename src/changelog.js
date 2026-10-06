@@ -1,6 +1,15 @@
-export const APP_VERSION = '1.5.0';
+export const APP_VERSION = '1.5.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.5.1',
+    date: '06/10/2026',
+    items: [
+      'Fiche de coût : choix « Temps de trajet » et « Kilomètres » (selon prestations / tout facturé / tout offert) avec coût total recalculé en direct',
+      'Bouton « Enregistrer ces choix » pour les reporter dans les prestations',
+      'Kilomètres offerts possibles dans chaque prestation, avec la valeur du cadeau',
+    ],
+  },
   {
     version: '1.5.0',
     date: '06/10/2026',

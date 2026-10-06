@@ -296,7 +296,18 @@ export default function App() {
         />
       )}
 
-      {fiche && <Fiche entries={fiche} settings={s} chantier={chantierDe(fiche)} onClose={() => setFiche(null)} />}
+      {fiche && (
+        <Fiche
+          entries={fiche}
+          settings={s}
+          chantier={chantierDe(fiche)}
+          onClose={() => setFiche(null)}
+          onSaveChoix={(list) => {
+            store.saveEntries(list);
+            setFiche(list);
+          }}
+        />
+      )}
 
       {recalc && (
         <RecalcModal
