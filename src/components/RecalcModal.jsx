@@ -9,6 +9,7 @@ const LIBELLES = {
   camionForfait: ['Forfait camion', '€'],
   camionKm: ['Supplément km camion', '€/km'],
   nettoyageForfait: ['Nettoyage camion', '€'],
+  tauxTrajet: ['Temps de trajet', '€/h'],
 };
 
 const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
@@ -17,7 +18,7 @@ const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
 export default function RecalcModal({ entry, settings, onApply, onClose }) {
   const nouveaux = snapshotTarifs(settings);
   const anciens = entry.tarifs || {};
-  const changes = Object.keys(LIBELLES).filter((k) => num(anciens[k]) !== num(nouveaux[k]));
+  const changes = Object.keys(LIBELLES).filter((k) => anciens[k] !== undefined && num(anciens[k]) !== num(nouveaux[k]));
 
   const avant = computeEntry(entry).total;
   const apres = computeEntry({ ...entry, tarifs: nouveaux }).total;

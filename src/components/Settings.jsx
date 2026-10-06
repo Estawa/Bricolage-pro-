@@ -3,7 +3,7 @@ import { usePhotoApi } from '../utils/photos';
 import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2, User, Loader2, Scale } from 'lucide-react';
 import { DEFAULT_SETTINGS, isoDate } from '../utils/calc';
 import { downloadFile } from '../utils/storage';
-import { Card, Label, NumberField, Button, inputCls } from './ui';
+import { Card, Label, NumberField, Button, inputCls, Segmented } from './ui';
 import { AccountCard } from './Account';
 
 export default function Settings({ settings, setSettings, chantiers, entries, onImport, onReset, user, syncState, onLeaveLocal, onBulk }) {
@@ -75,6 +75,19 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
         <NumberField id="taux-travail" label="Coût horaire de travail" value={settings.tauxTravail} onChange={set('tauxTravail')} suffix="€/h" />
         <NumberField id="taux-courses" label="Coût horaire des courses" value={settings.tauxCourses} onChange={set('tauxCourses')} suffix="€/h" />
         <NumberField id="cout-km" label="Coût kilométrique" value={settings.coutKm} onChange={set('coutKm')} suffix="€/km" step="0.01" />
+        <NumberField id="taux-trajet" label="Coût horaire du temps de trajet" value={settings.tauxTrajet ?? 20} onChange={set('tauxTrajet')} suffix="€/h" />
+        <div>
+          <Label>Temps de trajet, par défaut</Label>
+          <Segmented
+            small
+            value={settings.trajetDefaut || 'tarif'}
+            onChange={(v) => setSettings((s) => ({ ...s, trajetDefaut: v }))}
+            options={[
+              { value: 'tarif', label: 'Facturé' },
+              { value: 'offert', label: 'Non facturé' },
+            ]}
+          />
+        </div>
         <p className="flex items-start gap-1 text-xs text-stone-500">
           <ShoppingCart size={14} className="mt-0.5 shrink-0" />
           Les tarifs sont enregistrés avec chaque prestation : les modifier ici ne change pas les journées déjà saisies.

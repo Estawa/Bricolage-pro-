@@ -7,7 +7,7 @@ const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
 
 export function anciensTarifs(e, settings) {
   const actuels = snapshotTarifs(settings);
-  return Object.keys(actuels).some((k) => num(e.tarifs?.[k]) !== num(actuels[k]));
+  return Object.keys(actuels).some((k) => e.tarifs?.[k] !== undefined && num(e.tarifs[k]) !== num(actuels[k]));
 }
 
 // Carte d'une prestation (utilisée dans la vue du jour et dans la fiche chantier)
@@ -64,6 +64,12 @@ export default function EntryCard({ entry: e, settings, showDate, showChantier =
           </Chip>
         )}
         <Chip>🚗 {e.sansKm ? '0 km' : km1(c.km)}</Chip>
+        {c.hTrajet > 0 && (
+          <Chip>
+            ⏱ trajet {hm(c.hTrajet)} · {e.trajetMode === 'offert' ? `🎁 offert ${eur(c.trajetOffert)}` : eur(c.trajet)}
+            {e.trajetDeduit ? ' · retiré du travail' : ''}
+          </Chip>
+        )}
         {e.camion && (
           <Chip>
             <Truck size={12} /> Camion

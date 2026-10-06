@@ -3,7 +3,7 @@ import { Hammer, ShoppingCart, Route, Euro } from 'lucide-react';
 import { sumEntries, eur, hm, km1, MOIS, parseIso } from '../utils/calc';
 import { Segmented } from './ui';
 
-function Tile({ icon, label, value, accent }) {
+function Tile({ icon, label, value, accent, sub }) {
   // Petit effet visuel quand la valeur change
   const [flash, setFlash] = useState(false);
   const prev = useRef(value);
@@ -27,6 +27,7 @@ function Tile({ icon, label, value, accent }) {
       <div className="mt-1 text-xl font-bold tabular-nums leading-tight" data-testid={`compteur-${label}`}>
         {value}
       </div>
+      {sub && <div className="mt-0.5 text-[11px] opacity-80">{sub}</div>}
     </div>
   );
 }
@@ -72,8 +73,14 @@ export default function Counters({ entries, selectedDate, viewMonth }) {
       <div className="grid grid-cols-2 gap-2">
         <Tile icon={<Hammer size={14} />} label="Travail" value={hm(s.hT)} accent="bg-white/10" />
         <Tile icon={<ShoppingCart size={14} />} label="Courses" value={hm(s.hC)} accent="bg-white/10" />
-        <Tile icon={<Route size={14} />} label="Kilomètres" value={km1(s.km)} accent="bg-white/10" />
-        <Tile icon={<Euro size={14} />} label="Facturation" value={eur(s.total)} accent="bg-orange-600" />
+        <Tile icon={<Route size={14} />} label="Kilomètres" value={km1(s.km)} sub={s.hTrajet ? `${hm(s.hTrajet)} de trajet` : null} accent="bg-white/10" />
+        <Tile
+          icon={<Euro size={14} />}
+          label="Facturation"
+          value={eur(s.total)}
+          sub={s.trajetOffert > 0 ? `🎁 offert : ${eur(s.trajetOffert)}` : null}
+          accent="bg-orange-600"
+        />
       </div>
     </div>
   );

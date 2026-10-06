@@ -12,10 +12,12 @@ const CHAMPS = [
   ['camionForfait', 'Forfait camion', '€'],
   ['camionKm', 'Supp. km camion', '€/km'],
   ['nettoyageForfait', 'Nettoyage camion', '€'],
+  ['tauxTrajet', 'Temps de trajet', '€/h'],
 ];
 const POSTES = [
   ['travail', "Main-d'œuvre"],
   ['courses', 'Courses'],
+  ['trajet', 'Trajet facturé'],
   ['deplacement', 'Déplacements'],
   ['camion', 'Camion'],
   ['nettoyage', 'Nettoyage'],
@@ -66,19 +68,27 @@ export default function BulkTarifs({ entries, chantiers, settings, preselectIds,
   const [srcB, setSrcB] = useState('perso');
   const [persoA, setPersoA] = useState(() => ({ ...actuels }));
   const [persoB, setPersoB] = useState(() => ({ ...actuels }));
+  // Trajet : 'prestation' (choix de chaque prestation), 'tarif' (facturé), 'offert' (non facturé)
+  const [trajA, setTrajA] = useState('prestation');
+  const [trajB, setTrajB] = useState('prestation');
 
   const tarifsDe = (src, perso, e) => (src === 'enregistres' ? e.tarifs || {} : src === 'actuels' ? actuels : perso);
+  const variante = (e, src, perso, traj) => ({
+    ...e,
+    tarifs: { ...actuels, ...tarifsDe(src, perso, e) },
+    ...(traj !== 'prestation' ? { trajetMode: traj } : {}),
+  });
 
-  const totaux = (src, perso) => {
-    const acc = { travail: 0, courses: 0, deplacement: 0, camion: 0, nettoyage: 0, fournitures: 0, total: 0 };
+  const totaux = (src, perso, traj = 'prestation') => {
+    const acc = { travail: 0, courses: 0, trajet: 0, trajetOffert: 0, deplacement: 0, camion: 0, nettoyage: 0, fournitures: 0, total: 0 };
     for (const e of cible) {
-      const c = computeEntry({ ...e, tarifs: tarifsDe(src, perso, e) });
+      const c = computeEntry(variante(e, src, perso, traj));
       for (const k of Object.keys(acc)) acc[k] += c[k];
     }
     return acc;
   };
-  const tA = totaux(srcA, persoA);
-  const tB = totaux(srcB, persoB);
+  const tA = totaux(srcA, persoA, trajA);
+  const tB = totaux(srcB, persoB, trajB);
   const ecart = tB.total - tA.total;
 
   // valeur affichée d'un tarif pour la colonne (variable si les prestations n'ont pas toutes le même)
@@ -95,7 +105,12 @@ export default function BulkTarifs({ entries, chantiers, settings, preselectIds,
   const appliquer = (cote) => {
     const src = cote === 'A' ? srcA : srcB;
     const perso = cote === 'A' ? persoA : persoB;
-    const nouvelles = cible.map((e) => ({ ...e, tarifs: { ...(src === 'actuels' ? actuels : perso) } }));
+    const traj = cote === 'A' ? trajA : trajB;
+    const nouvelles = cible.map((e) => ({
+      ...e,
+      ...(src !== 'enregistres' ? { tarifs: { ...(src === 'actuels' ? actuels : perso) } } : {}),
+      ...(traj !== 'prestation' ? { trajetMode: traj } : {}),
+    }));
     onApply(nouvelles);
   };
 
@@ -133,10 +148,10 @@ export default function BulkTarifs({ entries, chantiers, settings, preselectIds,
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="ghost" className="flex-1 py-2 text-sm" disabled={!cible.length || srcA === 'enregistres'} onClick={() => setConfirmer('A')} data-testid="appliquer-A">
+            <Button variant="ghost" className="flex-1 py-2 text-sm" disabled={!cible.length || (srcA === 'enregistres' && trajA === 'prestation')} onClick={() => setConfirmer('A')} data-testid="appliquer-A">
               Appliquer A
             </Button>
-            <Button className="flex-1 py-2 text-sm" disabled={!cible.length || srcB === 'enregistres'} onClick={() => setConfirmer('B')} data-testid="appliquer-B">
+            <Button className="flex-1 py-2 text-sm" disabled={!cible.length || (srcB === 'enregistres' && trajB === 'prestation')} onClick={() => setConfirmer('B')} data-testid="appliquer-B">
               Appliquer B
             </Button>
           </div>
@@ -181,8 +196,8 @@ export default function BulkTarifs({ entries, chantiers, settings, preselectIds,
           <div className="max-h-56 divide-y divide-stone-100 overflow-y-auto rounded-xl border border-stone-200 dark:divide-stone-700 dark:border-stone-700">
             {visibles.length === 0 && <p className="p-3 text-center text-sm text-stone-500">Aucune prestation avec ces filtres.</p>}
             {visibles.map((e) => {
-              const a = computeEntry({ ...e, tarifs: tarifsDe(srcA, persoA, e) }).total;
-              const b = computeEntry({ ...e, tarifs: tarifsDe(srcB, persoB, e) }).total;
+              const a = computeEntry(variante(e, srcA, persoA, trajA)).total;
+              const b = computeEntry(variante(e, srcB, persoB, trajB)).total;
               return (
                 <label key={e.id} className="flex items-center gap-2 px-3 py-2 text-sm">
                   <input type="checkbox" className="h-4 w-4 shrink-0 accent-orange-600" checked={sel.has(e.id)} onChange={() => toggle(e.id)} />
@@ -226,6 +241,18 @@ export default function BulkTarifs({ entries, chantiers, settings, preselectIds,
                 </option>
               ))}
             </select>
+
+            <div className="self-center text-xs text-stone-500">Trajet</div>
+            {[
+              [trajA, setTrajA, 'A'],
+              [trajB, setTrajB, 'B'],
+            ].map(([v, setV, side]) => (
+              <select key={side} className={`${inputCls} px-2 py-1.5 text-xs`} value={v} onChange={(e) => setV(e.target.value)} data-testid={`trajet-${side}`}>
+                <option value="prestation">Selon prestation</option>
+                <option value="tarif">Facturé</option>
+                <option value="offert">Non facturé</option>
+              </select>
+            ))}
 
             {CHAMPS.map(([k, l, u]) => (
               <Ligne
@@ -274,6 +301,14 @@ export default function BulkTarifs({ entries, chantiers, settings, preselectIds,
                 <td className="py-2 text-right tabular-nums text-orange-700 dark:text-orange-400">{eur(tB.total)}</td>
                 <td className="py-2 text-right tabular-nums">{fmtEcart(ecart)}</td>
               </tr>
+              {(tA.trajetOffert > 0 || tB.trajetOffert > 0) && (
+                <tr className="text-xs text-emerald-700 dark:text-emerald-400">
+                  <td className="py-1">🎁 Trajet offert</td>
+                  <td className="py-1 text-right tabular-nums">{eur(tA.trajetOffert)}</td>
+                  <td className="py-1 text-right tabular-nums">{eur(tB.trajetOffert)}</td>
+                  <td className="py-1 text-right tabular-nums">{fmtEcart(tB.trajetOffert - tA.trajetOffert)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
           {tA.total > 0 && <p className="text-xs text-stone-500">Soit {((ecart / tA.total) * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1, signDisplay: 'always' })} % entre A et B.</p>}
@@ -304,7 +339,7 @@ export default function BulkTarifs({ entries, chantiers, settings, preselectIds,
           }
         >
           <p className="text-sm text-stone-600 dark:text-stone-300">
-            Les tarifs <b>{confirmer}</b> vont remplacer ceux de <b>{cible.length}</b> prestation{cible.length > 1 ? 's' : ''}.
+            Les réglages <b>{confirmer}</b> (tarifs et/ou trajet) vont s’appliquer à <b>{cible.length}</b> prestation{cible.length > 1 ? 's' : ''}.
           </p>
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-xl bg-stone-100 p-2 dark:bg-stone-900">

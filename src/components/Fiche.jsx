@@ -112,6 +112,9 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
                         c.hT ? `Main-d'œuvre ${hm(c.hT)}${horairesTravail(e) ? ` (${horairesTravail(e)})` : ''}` : null,
                         c.hC ? `Courses ${hm(c.hC)}${horairesCourses(e) ? ` (${horairesCourses(e)})` : ''}` : null,
                         e.sansKm ? null : km1(c.km),
+                        c.hTrajet
+                          ? `Trajet ${hm(c.hTrajet)} ${e.trajetMode === 'offert' ? `(offert, valeur ${eur(c.trajetOffert)})` : '(facturé)'}${e.trajetDeduit ? ', retiré du temps de travail' : ''}`
+                          : null,
                         e.camion ? 'Camion' : null,
                         e.nettoyage ? 'Nettoyage camion' : null,
                       ]
@@ -142,7 +145,15 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
                   <td className="py-1.5 pr-2">{p.libelle}</td>
                   <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums">{p.qte}</td>
                   <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums">{p.pu}</td>
-                  <td className="py-1.5 text-right tabular-nums">{eur(p.montant)}</td>
+                  <td className="py-1.5 text-right tabular-nums">
+                    {p.pu === 'offert' ? (
+                      <span>
+                        <s>{eur(p.valeur)}</s> 0,00&nbsp;€
+                      </span>
+                    ) : (
+                      eur(p.montant)
+                    )}
+                  </td>
                 </tr>
               ))}
               <tr className="border-y-2 border-black text-base font-extrabold">
@@ -153,10 +164,21 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
                   {eur(s.total)}
                 </td>
               </tr>
+              {s.trajetOffert > 0 && (
+                <tr>
+                  <td className="pt-2 text-[12px] italic" colSpan={3}>
+                    Geste commercial : temps de trajet offert
+                  </td>
+                  <td className="pt-2 text-right text-[12px] italic tabular-nums" data-testid="fiche-offert">
+                    {eur(s.trajetOffert)}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
           <p className="mt-2 text-[11px] text-stone-600">
-            {s.nb} intervention{s.nb > 1 ? 's' : ''} · {hm(s.hT)} de main-d'œuvre · {hm(s.hC)} de courses · {km1(s.km)}
+            {s.nb} intervention{s.nb > 1 ? 's' : ''} · {hm(s.hT)} de main-d'œuvre · {hm(s.hC)} de courses
+            {s.hTrajet ? ` · ${hm(s.hTrajet)} de trajet` : ''} · {km1(s.km)}
           </p>
         </div>
 

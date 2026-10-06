@@ -9,6 +9,12 @@ import TempsField, { modeParDefaut } from './TempsField';
 
 const LIBRE = '__libre__';
 
+function minFor(chantier, base) {
+  if (!chantier) return '';
+  const v = base === 'maison' ? chantier.minMaison : chantier.minTravail;
+  return v ?? '';
+}
+
 function kmFor(chantier, base) {
   if (!chantier) return '';
   const v = base === 'maison' ? chantier.kmMaison : chantier.kmTravail;
@@ -29,7 +35,18 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
   const [f, setF] = useState(() => {
     if (entry) {
       const existe = chantiers.some((c) => c.id === entry.chantierId);
-      return { tickets: [], sansKm: false, ...entry, chantierSel: existe ? entry.chantierId : LIBRE };
+      return {
+        tickets: [],
+        sansKm: false,
+        minAller: '',
+        minRetour: '',
+        trajetMode: 'tarif',
+        trajetDeduit: false,
+        ...entry,
+        // anciennes prestations : on complète seulement les tarifs manquants (ex. tarif trajet)
+        tarifs: { ...snapshotTarifs(settings), ...entry.tarifs },
+        chantierSel: existe ? entry.chantierId : LIBRE,
+      };
     }
     const ch = chantiers.find((c) => c.id === initialChantierId) || chantiers[0];
     return {
@@ -41,6 +58,10 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
       retour: 'maison',
       kmAller: kmFor(ch, 'maison'),
       kmRetour: kmFor(ch, 'maison'),
+      minAller: minFor(ch, 'maison'),
+      minRetour: minFor(ch, 'maison'),
+      trajetMode: settings.trajetDefaut || 'tarif',
+      trajetDeduit: modeParDefaut('travail') === 'horaires',
       sansKm: false,
       heuresTravail: 0,
       travailMode: modeParDefaut('travail'),
@@ -71,12 +92,19 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
       chantierSel: id,
       kmAller: ch ? kmFor(ch, f.depart) : f.kmAller,
       kmRetour: ch ? kmFor(ch, f.retour) : f.kmRetour,
+      minAller: ch ? minFor(ch, f.depart) : f.minAller,
+      minRetour: ch ? minFor(ch, f.retour) : f.minRetour,
     });
   };
-  const setDepart = (b) => set({ depart: b, kmAller: chantier ? kmFor(chantier, b) : f.kmAller });
-  const setRetour = (b) => set({ retour: b, kmRetour: chantier ? kmFor(chantier, b) : f.kmRetour });
+  const setDepart = (b) =>
+    set({ depart: b, kmAller: chantier ? kmFor(chantier, b) : f.kmAller, minAller: chantier ? minFor(chantier, b) : f.minAller });
+  const setRetour = (b) =>
+    set({ retour: b, kmRetour: chantier ? kmFor(chantier, b) : f.kmRetour, minRetour: chantier ? minFor(chantier, b) : f.minRetour });
 
   const calc = useMemo(() => computeEntry(f), [f]);
+  // Comparaison immédiate : coût avec trajet facturé / non facturé
+  const totalFacture = computeEntry({ ...f, trajetMode: 'tarif' }).total;
+  const totalOffert = computeEntry({ ...f, trajetMode: 'offert' }).total;
   const current = snapshotTarifs(settings);
   const tarifsDifferents = JSON.stringify(current) !== JSON.stringify(f.tarifs);
   const totalTk = totalTickets(f);
@@ -213,6 +241,62 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
                 <NumberField id="km-aller" label="Km aller" value={f.kmAller} onChange={(v) => set({ kmAller: v })} suffix="km" step="0.1" />
                 <NumberField id="km-retour" label="Km retour" value={f.kmRetour} onChange={(v) => set({ kmRetour: v })} suffix="km" step="0.1" />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField id="min-aller" label="Trajet aller" value={f.minAller} onChange={(v) => set({ minAller: v })} suffix="min" step="1" />
+                <NumberField id="min-retour" label="Trajet retour" value={f.minRetour} onChange={(v) => set({ minRetour: v })} suffix="min" step="1" />
+              </div>
+              {calc.hTrajet > 0 && (
+                <div className="space-y-2 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-700 dark:bg-stone-800">
+                  <div className="text-sm font-medium">
+                    Temps de trajet : <span className="tabular-nums">{hm(calc.hTrajet)}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2" data-testid="choix-trajet">
+                    {[
+                      ['tarif', `Facturé (${eur(f.tarifs.tauxTrajet)}/h)`, totalFacture],
+                      ['offert', 'Non facturé', totalOffert],
+                    ].map(([v, l, tot]) => {
+                      const on = (f.trajetMode || 'tarif') === v;
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => set({ trajetMode: v })}
+                          data-testid={`trajet-${v}`}
+                          className={`rounded-xl border p-2 text-left transition ${
+                            on ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200 dark:bg-orange-950/40 dark:ring-orange-900' : 'border-stone-200 dark:border-stone-700'
+                          }`}
+                        >
+                          <span className="block text-xs text-stone-500">{l}</span>
+                          <span className="block font-bold tabular-nums">{eur(tot)}</span>
+                          <span className="block text-[10px] text-stone-400">coût de la prestation</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-stone-500">
+                    {f.trajetMode === 'offert' ? (
+                      <>
+                        🎁 Cadeau au client : <b className="tabular-nums text-emerald-700 dark:text-emerald-400">{eur(totalFacture - totalOffert)}</b>
+                      </>
+                    ) : (
+                      <>Écart : {eur(totalFacture - totalOffert)}</>
+                    )}
+                  </p>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-orange-600"
+                      checked={!!f.trajetDeduit}
+                      onChange={(e) => set({ trajetDeduit: e.target.checked })}
+                      data-testid="trajet-deduit"
+                    />
+                    <span>
+                      Mon temps de travail saisi inclut le trajet : <b>le retirer</b>
+                      <span className="block text-xs text-stone-500">Ex. : parti à 8 h, rentré à 12 h → travail effectif = 4 h − trajet</span>
+                    </span>
+                  </label>
+                </div>
+              )}
               <NumberField
                 id="km-courses"
                 label="Km supplémentaires pour les courses"
@@ -233,7 +317,10 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
             label="Temps de travail"
             avecPause
             value={{ mode: f.travailMode, debut: f.travailDebut, fin: f.travailFin, pause: f.travailPause, heures: f.heuresTravail }}
-            onChange={(p) => set(mapTemps('travail', p))}
+            onChange={(p) =>
+              // En mode « Horaires » (porte à porte), le trajet est retiré automatiquement (modifiable)
+              set({ ...mapTemps('travail', p), ...('mode' in p ? { trajetDeduit: p.mode === 'horaires' } : {}) })
+            }
           />
           <TempsField
             idPrefix="courses"
@@ -344,8 +431,23 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
         {/* Détail du calcul */}
         <section className="rounded-2xl border border-orange-200 bg-orange-50/60 p-3 text-sm dark:border-orange-900 dark:bg-orange-950/30">
           <h3 className="mb-2 font-semibold">Détail du calcul</h3>
-          <Row l={`Travail ${hm(calc.hT)} × ${eur(f.tarifs.tauxTravail)}/h`} v={calc.travail} />
+          <Row
+            l={`Travail ${hm(calc.hT)}${f.trajetDeduit && calc.hTrajet > 0 ? ' (trajet retiré)' : ''} × ${eur(f.tarifs.tauxTravail)}/h`}
+            v={calc.travail}
+          />
           <Row l={`Courses ${hm(calc.hC)} × ${eur(f.tarifs.tauxCourses)}/h`} v={calc.courses} />
+          {calc.hTrajet > 0 && (
+            <Row
+              l={f.trajetMode === 'offert' ? `Trajet ${hm(calc.hTrajet)} (non facturé)` : `Trajet ${hm(calc.hTrajet)} × ${eur(f.tarifs.tauxTrajet)}/h`}
+              v={calc.trajet}
+            />
+          )}
+          {calc.trajetOffert > 0 && (
+            <div className="mt-1 flex justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-stone-900/50 dark:text-emerald-400" data-testid="cadeau">
+              <span>🎁 Trajet offert (aurait coûté)</span>
+              <span className="tabular-nums">{eur(calc.trajetOffert)}</span>
+            </div>
+          )}
           <Row l={f.sansKm ? 'Déplacement (sans kilométrage)' : `Déplacement ${km1(calc.km)} × ${eur(f.tarifs.coutKm)}/km`} v={calc.deplacement} />
           {f.camion && <Row l="Camion (forfait + km)" v={calc.camion} />}
           {calc.nettoyage > 0 && <Row l="Nettoyage camion" v={calc.nettoyage} />}

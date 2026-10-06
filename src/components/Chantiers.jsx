@@ -27,7 +27,7 @@ export default function Chantiers({ chantiers, saveChantier: save, deleteChantie
           <h2 className="text-lg font-bold">Chantiers & clients</h2>
           <p className="text-sm text-stone-500">Distances enregistrées une fois pour toutes</p>
         </div>
-        <Button onClick={() => setEdit({ id: uid(), nom: '', adresse: '', kmMaison: '', kmTravail: '', note: '' })} data-testid="nouveau-chantier">
+        <Button onClick={() => setEdit({ id: uid(), nom: '', adresse: '', kmMaison: '', kmTravail: '', minMaison: '', minTravail: '', note: '' })} data-testid="nouveau-chantier">
           <Plus size={18} /> Nouveau
         </Button>
       </div>
@@ -66,9 +66,11 @@ export default function Chantiers({ chantiers, saveChantier: save, deleteChantie
             <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
               <div className="flex items-center gap-1 rounded-lg bg-stone-50 px-2 py-1 dark:bg-stone-900">
                 <Home size={14} className="text-orange-600" /> {c.kmMaison !== '' ? km1(+c.kmMaison) : '—'}
+                {c.minMaison ? <span className="text-stone-500">· {c.minMaison} min</span> : null}
               </div>
               <div className="flex items-center gap-1 rounded-lg bg-stone-50 px-2 py-1 dark:bg-stone-900">
                 <School size={14} className="text-orange-600" /> {c.kmTravail !== '' ? km1(+c.kmTravail) : '—'}
+                {c.minTravail ? <span className="text-stone-500">· {c.minTravail} min</span> : null}
               </div>
             </div>
             <button
@@ -113,7 +115,7 @@ function ChantierForm({ initial, settings, setSettings, onSave, onClose }) {
     setMsg('Calcul de l’itinéraire en cours…');
     try {
       const r = await distancesDepuisBases(c.adresse, settings.bases);
-      set({ kmMaison: r.kmMaison, kmTravail: r.kmTravail });
+      set({ kmMaison: r.kmMaison, kmTravail: r.kmTravail, minMaison: r.minMaison, minTravail: r.minTravail });
       // On garde en mémoire la position des bases pour aller plus vite la prochaine fois
       setSettings((s) => ({
         ...s,
@@ -122,7 +124,7 @@ function ChantierForm({ initial, settings, setSettings, onSave, onClose }) {
           travail: { ...s.bases.travail, ...r.basesCoords.travail },
         },
       }));
-      setMsg('Distances routières calculées (aller simple). Vous pouvez les ajuster.');
+      setMsg('Distances et temps de trajet calculés (aller simple, sans trafic). Ajustez le temps selon vos habitudes.');
     } catch (e) {
       setMsg(`${e.message}. Saisissez les kilomètres à la main.`);
     } finally {
@@ -156,6 +158,8 @@ function ChantierForm({ initial, settings, setSettings, onSave, onClose }) {
         <div className="grid grid-cols-2 gap-3">
           <NumberField id="ch-km-maison" label={`Depuis ${settings.bases.maison.label}`} hint="(aller)" value={c.kmMaison} onChange={(v) => set({ kmMaison: v })} suffix="km" step="0.1" />
           <NumberField id="ch-km-travail" label={`Depuis ${settings.bases.travail.label}`} hint="(aller)" value={c.kmTravail} onChange={(v) => set({ kmTravail: v })} suffix="km" step="0.1" />
+          <NumberField id="ch-min-maison" label="Temps moyen" hint="(aller)" value={c.minMaison ?? ''} onChange={(v) => set({ minMaison: v })} suffix="min" step="1" />
+          <NumberField id="ch-min-travail" label="Temps moyen" hint="(aller)" value={c.minTravail ?? ''} onChange={(v) => set({ minTravail: v })} suffix="min" step="1" />
         </div>
         <label className="block">
           <Label>Notes</Label>
