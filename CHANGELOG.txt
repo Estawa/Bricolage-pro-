@@ -1,5 +1,10 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.5.1 — 06/10/2026
+- Fiche de coût : sélecteurs « Temps de trajet » et « Kilomètres » (selon prestations / tout facturé / tout offert), coût total recalculé en direct
+- « Enregistrer ces choix » reporte la sélection dans les prestations (avec confirmation)
+- Kilomètres offerts dans chaque prestation, valeur du cadeau affichée (fiche, compteurs, bilan, CSV)
+
 v1.5.0 — 06/10/2026
 - Temps de trajet moyen par chantier (depuis Maison et depuis Travail), calcul automatique avec les km
 - Coût horaire du temps de trajet dans les Réglages + choix par défaut (facturé / non facturé)
