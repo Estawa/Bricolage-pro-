@@ -4,11 +4,12 @@ import { X, Printer, Share2 } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1 } from '../utils/calc';
 import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses } from '../utils/recap';
 import { usePhoto } from '../utils/photos';
+import { trajetManquant, completerTrajet } from '../utils/trajet';
 import { isoDate } from '../utils/calc';
 
 // Fiche récapitulative « style facturation » — se termine par le COÛT TOTAL (pas de « net à payer »)
 // Mise en page noir et blanc, lignes jamais coupées entre deux pages à l'impression.
-export default function Fiche({ entries, settings, chantier, onClose, onSaveChoix }) {
+export default function Fiche({ entries, settings, chantier, chantiers = [], onClose, onSaveChoix }) {
   const [detail, setDetail] = useState(true);
   const [annexe, setAnnexe] = useState(true);
   // Choix appliqués à la fiche : 'prestation' (comme saisi), 'tarif' (tout facturé), 'offert' (tout offert)
@@ -26,6 +27,8 @@ export default function Fiche({ entries, settings, chantier, onClose, onSaveChoi
   );
   const totalSaisi = sumEntries(original).total;
   const modifie = optTrajet !== 'prestation' || optKm !== 'prestation';
+  const sansTrajet = sumEntries(original).hTrajet === 0;
+  const aCompleter = original.filter((e) => trajetManquant(e, chantiers));
 
   useEffect(() => {
     document.body.classList.add('fiche-ouverte');
@@ -95,6 +98,36 @@ export default function Fiche({ entries, settings, chantier, onClose, onSaveChoi
             </label>
           )}
         </div>
+        {(sansTrajet || aCompleter.length > 0) && (
+          <div className="mx-auto mt-2 max-w-3xl rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="fiche-alerte-trajet">
+            {aCompleter.length > 0 ? (
+              <>
+                <b>{aCompleter.length} prestation{aCompleter.length > 1 ? 's' : ''}</b> sans temps de trajet, alors que le chantier en a un.
+                {onSaveChoix && (
+                  <button
+                    type="button"
+                    className="ml-2 rounded-lg bg-amber-600 px-3 py-1 text-xs font-semibold text-white"
+                    data-testid="fiche-completer-trajet"
+                    onClick={() => {
+                      const ids = new Set(aCompleter.map((e) => e.id));
+                      const nouvelles = original.map((e) => (ids.has(e.id) ? completerTrajet(e, chantiers, settings) : e));
+                      const avant = sumEntries(original).total;
+                      const apres = sumEntries(nouvelles).total;
+                      if (confirm(`Ajouter le temps de trajet du chantier à ${ids.size} prestation(s) ?\nCoût total : ${eur(avant)} → ${eur(apres)}`)) onSaveChoix(nouvelles);
+                    }}
+                  >
+                    Compléter depuis le chantier
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                Aucun temps de trajet n’est renseigné dans ces prestations : le choix « Temps de trajet » n’a donc pas d’effet.
+                Renseignez les <b>temps moyens</b> dans la fiche du chantier (onglet Chantiers → crayon), puis revenez ici.
+              </>
+            )}
+          </div>
+        )}
         <div className="mx-auto mt-2 flex max-w-3xl flex-wrap items-center gap-3 rounded-xl bg-stone-100 px-3 py-2 text-sm">
           <span>
             Coût total : <b className="tabular-nums" data-testid="fiche-total-barre">{eur(s.total)}</b>
