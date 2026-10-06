@@ -8,10 +8,24 @@ import { isoDate } from '../utils/calc';
 
 // Fiche récapitulative « style facturation » — se termine par le COÛT TOTAL (pas de « net à payer »)
 // Mise en page noir et blanc, lignes jamais coupées entre deux pages à l'impression.
-export default function Fiche({ entries, settings, chantier, onClose }) {
-  const list = useMemo(() => sortByDate(entries), [entries]);
+export default function Fiche({ entries, settings, chantier, onClose, onSaveChoix }) {
   const [detail, setDetail] = useState(true);
   const [annexe, setAnnexe] = useState(true);
+  // Choix appliqués à la fiche : 'prestation' (comme saisi), 'tarif' (tout facturé), 'offert' (tout offert)
+  const [optTrajet, setOptTrajet] = useState('prestation');
+  const [optKm, setOptKm] = useState('prestation');
+  const original = useMemo(() => sortByDate(entries), [entries]);
+  const list = useMemo(
+    () =>
+      original.map((e) => ({
+        ...e,
+        ...(optTrajet !== 'prestation' ? { trajetMode: optTrajet } : {}),
+        ...(optKm !== 'prestation' ? { kmOffert: optKm === 'offert' } : {}),
+      })),
+    [original, optTrajet, optKm]
+  );
+  const totalSaisi = sumEntries(original).total;
+  const modifie = optTrajet !== 'prestation' || optKm !== 'prestation';
 
   useEffect(() => {
     document.body.classList.add('fiche-ouverte');
@@ -55,6 +69,22 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
         </div>
         <div className="mx-auto mt-2 flex max-w-3xl flex-wrap gap-4 text-sm text-stone-700">
           <label className="flex items-center gap-2">
+            Temps de trajet
+            <select className="rounded-lg border border-stone-300 px-2 py-1 text-sm" value={optTrajet} onChange={(e) => setOptTrajet(e.target.value)} data-testid="fiche-opt-trajet">
+              <option value="prestation">selon prestations</option>
+              <option value="tarif">tout facturé</option>
+              <option value="offert">tout offert</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            Kilomètres
+            <select className="rounded-lg border border-stone-300 px-2 py-1 text-sm" value={optKm} onChange={(e) => setOptKm(e.target.value)} data-testid="fiche-opt-km">
+              <option value="prestation">selon prestations</option>
+              <option value="facture">tout facturé</option>
+              <option value="offert">tout offert</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
             <input type="checkbox" className="h-4 w-4 accent-orange-600" checked={detail} onChange={(e) => setDetail(e.target.checked)} />
             Détail des montants par jour
           </label>
@@ -63,6 +93,33 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
               <input type="checkbox" className="h-4 w-4 accent-orange-600" checked={annexe} onChange={(e) => setAnnexe(e.target.checked)} />
               Tickets en annexe ({tickets.length})
             </label>
+          )}
+        </div>
+        <div className="mx-auto mt-2 flex max-w-3xl flex-wrap items-center gap-3 rounded-xl bg-stone-100 px-3 py-2 text-sm">
+          <span>
+            Coût total : <b className="tabular-nums" data-testid="fiche-total-barre">{eur(s.total)}</b>
+          </span>
+          {s.offert > 0 && <span className="font-semibold text-emerald-700">🎁 offert : {eur(s.offert)}</span>}
+          {modifie && (
+            <>
+              <span className="text-stone-500">(enregistré : {eur(totalSaisi)})</span>
+              {onSaveChoix && (
+                <button
+                  type="button"
+                  className="ml-auto rounded-lg bg-orange-600 px-3 py-1 text-xs font-semibold text-white"
+                  onClick={() => {
+                    if (confirm(`Enregistrer ces choix dans les ${list.length} prestation(s) ? Coût total : ${eur(totalSaisi)} → ${eur(s.total)}`)) {
+                      onSaveChoix(list);
+                      setOptTrajet('prestation');
+                      setOptKm('prestation');
+                    }
+                  }}
+                  data-testid="fiche-enregistrer-choix"
+                >
+                  Enregistrer ces choix
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -111,7 +168,7 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
                       {[
                         c.hT ? `Main-d'œuvre ${hm(c.hT)}${horairesTravail(e) ? ` (${horairesTravail(e)})` : ''}` : null,
                         c.hC ? `Courses ${hm(c.hC)}${horairesCourses(e) ? ` (${horairesCourses(e)})` : ''}` : null,
-                        e.sansKm ? null : km1(c.km),
+                        e.sansKm ? null : `${km1(c.km)}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`,
                         c.hTrajet
                           ? `Trajet ${hm(c.hTrajet)} ${e.trajetMode === 'offert' ? `(offert, valeur ${eur(c.trajetOffert)})` : '(facturé)'}${e.trajetDeduit ? ', retiré du temps de travail' : ''}`
                           : null,
@@ -164,13 +221,14 @@ export default function Fiche({ entries, settings, chantier, onClose }) {
                   {eur(s.total)}
                 </td>
               </tr>
-              {s.trajetOffert > 0 && (
+              {s.offert > 0 && (
                 <tr>
                   <td className="pt-2 text-[12px] italic" colSpan={3}>
-                    Geste commercial : temps de trajet offert
+                    Geste commercial :{' '}
+                    {[s.trajetOffert > 0 ? 'temps de trajet' : null, s.deplacementOffert > 0 ? 'kilomètres' : null].filter(Boolean).join(' et ')} offerts
                   </td>
                   <td className="pt-2 text-right text-[12px] italic tabular-nums" data-testid="fiche-offert">
-                    {eur(s.trajetOffert)}
+                    {eur(s.offert)}
                   </td>
                 </tr>
               )}

@@ -59,7 +59,7 @@ export default function ChantierDetail({ chantier, entries, settings, onBack, on
         <Stat l="Trajet" v={hm(s.hTrajet)} />
         <Stat l="Tickets" v={nbTickets} />
         <Stat l="Trajet facturé" v={eur(s.trajet)} />
-        {s.trajetOffert > 0 && <Stat l="🎁 Trajet offert" v={eur(s.trajetOffert)} />}
+        {s.offert > 0 && <Stat l="🎁 Offert" v={eur(s.offert)} />}
       </Card>
 
       <Button className="w-full" onClick={onAdd} data-testid="ajouter-chantier">

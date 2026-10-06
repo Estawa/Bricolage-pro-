@@ -63,7 +63,7 @@ export default function EntryCard({ entry: e, settings, showDate, showChantier =
             {horairesCourses(e) && <span className="text-stone-500 dark:text-stone-400">· {horairesCourses(e)}</span>}
           </Chip>
         )}
-        <Chip>🚗 {e.sansKm ? '0 km' : km1(c.km)}</Chip>
+        <Chip>🚗 {e.sansKm ? '0 km' : km1(c.km)}{c.deplacementOffert > 0 ? ` · 🎁 offerts ${eur(c.deplacementOffert)}` : ''}</Chip>
         {c.hTrajet > 0 && (
           <Chip>
             ⏱ trajet {hm(c.hTrajet)} · {e.trajetMode === 'offert' ? `🎁 offert ${eur(c.trajetOffert)}` : eur(c.trajet)}

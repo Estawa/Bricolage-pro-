@@ -78,7 +78,7 @@ export default function Counters({ entries, selectedDate, viewMonth }) {
           icon={<Euro size={14} />}
           label="Facturation"
           value={eur(s.total)}
-          sub={s.trajetOffert > 0 ? `🎁 offert : ${eur(s.trajetOffert)}` : null}
+          sub={s.offert > 0 ? `🎁 offert : ${eur(s.offert)}` : null}
           accent="bg-orange-600"
         />
       </div>

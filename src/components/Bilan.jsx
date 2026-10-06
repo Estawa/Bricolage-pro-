@@ -30,7 +30,7 @@ export default function Bilan({ entries, viewMonth, settings }) {
   const exportCsv = () => {
     const num = (v) => String(Math.round(v * 100) / 100).replace('.', ',');
     const head = [
-      'Date', 'Chantier', 'Départ', 'Retour', 'Heures travail', 'Horaires travail', 'Heures courses', 'Horaires courses', 'Heures trajet', 'Trajet facturé', 'Trajet offert €', 'Km',
+      'Date', 'Chantier', 'Départ', 'Retour', 'Heures travail', 'Horaires travail', 'Heures courses', 'Horaires courses', 'Heures trajet', 'Trajet facturé', 'Trajet offert €', 'Km offerts €', 'Km',
       'Camion', 'Nettoyage', 'Travail €', 'Courses €', 'Trajet €', 'Déplacement €', 'Camion €',
       'Nettoyage €', 'Fournitures €', 'Total €', 'Tickets', 'Montant tickets €', 'Travaux réalisés',
     ];
@@ -41,7 +41,7 @@ export default function Bilan({ entries, viewMonth, settings }) {
         e.chantierNom,
         e.sansKm ? 'sans km' : settings.bases[e.depart]?.label,
         e.sansKm ? 'sans km' : settings.bases[e.retour]?.label,
-        num(c.hT), horairesTravail(e), num(c.hC), horairesCourses(e), num(c.hTrajet), c.hTrajet ? (e.trajetMode === 'offert' ? 'non' : 'oui') : '', num(c.trajetOffert), num(c.km),
+        num(c.hT), horairesTravail(e), num(c.hC), horairesCourses(e), num(c.hTrajet), c.hTrajet ? (e.trajetMode === 'offert' ? 'non' : 'oui') : '', num(c.trajetOffert), num(c.deplacementOffert), num(c.km),
         e.camion ? 'oui' : 'non', e.nettoyage ? 'oui' : 'non',
         num(c.travail), num(c.courses), num(c.trajet), num(c.deplacement), num(c.camion),
         num(c.nettoyage), num(c.fournitures), num(c.total),
@@ -94,10 +94,10 @@ export default function Bilan({ entries, viewMonth, settings }) {
           <span>Total</span>
           <span className="tabular-nums text-orange-700 dark:text-orange-400">{eur(s.total)}</span>
         </div>
-        {s.trajetOffert > 0 && (
+        {s.offert > 0 && (
           <div className="mt-2 flex justify-between rounded-lg bg-emerald-50 px-2 py-1.5 text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
-            <span>🎁 Trajets offerts (non comptés)</span>
-            <span className="tabular-nums">{eur(s.trajetOffert)}</span>
+            <span>🎁 Offert (trajets et km non comptés)</span>
+            <span className="tabular-nums">{eur(s.offert)}</span>
           </div>
         )}
       </Card>

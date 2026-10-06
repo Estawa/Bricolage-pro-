@@ -297,6 +297,11 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
                   </label>
                 </div>
               )}
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="h-4 w-4 accent-orange-600" checked={!!f.kmOffert} onChange={(e) => set({ kmOffert: e.target.checked })} data-testid="km-offert" />
+                Kilomètres offerts (non facturés)
+                {calc.deplacementOffert > 0 && <span className="font-semibold text-emerald-700 dark:text-emerald-400">🎁 {eur(calc.deplacementOffert)}</span>}
+              </label>
               <NumberField
                 id="km-courses"
                 label="Km supplémentaires pour les courses"
@@ -448,7 +453,16 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
               <span className="tabular-nums">{eur(calc.trajetOffert)}</span>
             </div>
           )}
-          <Row l={f.sansKm ? 'Déplacement (sans kilométrage)' : `Déplacement ${km1(calc.km)} × ${eur(f.tarifs.coutKm)}/km`} v={calc.deplacement} />
+          <Row
+            l={f.sansKm ? 'Déplacement (sans kilométrage)' : `Déplacement ${km1(calc.km)} × ${eur(f.tarifs.coutKm)}/km${f.kmOffert ? ' (offert)' : ''}`}
+            v={calc.deplacement}
+          />
+          {calc.deplacementOffert > 0 && (
+            <div className="mt-1 flex justify-between gap-2 rounded-lg bg-white/70 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-stone-900/50 dark:text-emerald-400">
+              <span>🎁 Kilomètres offerts (auraient coûté)</span>
+              <span className="tabular-nums">{eur(calc.deplacementOffert)}</span>
+            </div>
+          )}
           {f.camion && <Row l="Camion (forfait + km)" v={calc.camion} />}
           {calc.nettoyage > 0 && <Row l="Nettoyage camion" v={calc.nettoyage} />}
           {calc.fournitures > 0 && <Row l="Fournitures" v={calc.fournitures} />}
