@@ -78,9 +78,17 @@ export function computeEntry(e) {
   const camion = e.camion ? n(t.camionForfait) + km * n(t.camionKm) : 0;
   const nettoyage = e.camion && e.nettoyage ? n(t.nettoyageForfait) : 0;
   const fournitures = n(e.fournitures);
-  const total = travail + courses + trajet + deplacement + camion + nettoyage + fournitures;
+  // Ajouts / déductions libres de la prestation
+  let ajouts = 0;
+  let deductions = 0;
+  for (const a of e.ajustements || []) {
+    const m = Math.abs(n(a.montant));
+    if (a.type === 'deduction') deductions += m;
+    else ajouts += m;
+  }
+  const total = travail + courses + trajet + deplacement + camion + nettoyage + fournitures + ajouts - deductions;
   const offert = trajetOffert + deplacementOffert;
-  return { km, hT, hC, hTrajet, travail, courses, trajet, trajetOffert, deplacement, deplacementOffert, offert, camion, nettoyage, fournitures, total };
+  return { km, hT, hC, hTrajet, travail, courses, trajet, trajetOffert, deplacement, deplacementOffert, offert, camion, nettoyage, fournitures, ajouts, deductions, total };
 }
 
 export function sumEntries(entries) {
@@ -100,6 +108,8 @@ export function sumEntries(entries) {
     camion: 0,
     nettoyage: 0,
     fournitures: 0,
+    ajouts: 0,
+    deductions: 0,
     total: 0,
   };
   for (const e of entries) {

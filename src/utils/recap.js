@@ -38,6 +38,10 @@ export function resumeLigne(e) {
   if (e.camion) parts.push('Camion');
   if (e.nettoyage) parts.push('Nettoyage camion');
   if (c.fournitures) parts.push(`Fournitures ${eur(c.fournitures)}`);
+  for (const a of e.ajustements || []) {
+    const m = Math.abs(parseFloat(String(a.montant).replace(',', '.')) || 0);
+    if (m) parts.push(`${a.type === 'deduction' ? '−' : '+'} ${a.libelle || (a.type === 'deduction' ? 'déduction' : 'ajout')} ${eur(m)}`);
+  }
   return parts.join(' · ');
 }
 
@@ -55,7 +59,28 @@ export function detailMontants(e) {
 }
 
 // Récapitulatif par poste pour la fiche (avec le tarif s'il est le même partout)
-export function postes(entries) {
+// Lignes « à ajouter / à déduire » : celles des prestations (datées) puis celles du chantier (sans date)
+export function lignesAjustements(entries, extra = []) {
+  const out = [];
+  const push = (a, date) => {
+    const m = Math.abs(parseFloat(String(a.montant ?? '').replace(',', '.')) || 0);
+    if (!m) return;
+    const deduc = a.type === 'deduction';
+    out.push({
+      libelle: `${a.libelle || (deduc ? 'Déduction' : 'Ajout')}${date ? ` (${frDate(date)})` : ''}`,
+      qte: '',
+      pu: deduc ? 'à déduire' : 'à ajouter',
+      montant: deduc ? -m : m,
+      ajust: true,
+      garder: true,
+    });
+  };
+  for (const e of sortByDate(entries)) for (const a of e.ajustements || []) push(a, e.date);
+  for (const a of extra) push(a, null);
+  return out;
+}
+
+export function postes(entries, extra = []) {
   const s = sumEntries(entries);
   const unique = (k) => {
     const set = new Set(entries.map((e) => n(e.tarifs?.[k])));
@@ -89,15 +114,17 @@ export function postes(entries) {
     { libelle: 'Utilisation du camion', qte: nbCamion ? `${nbCamion} fois` : '', pu: '', montant: s.camion },
     { libelle: 'Nettoyage du camion', qte: nbNett ? `${nbNett} fois` : '', pu: '', montant: s.nettoyage },
     { libelle: 'Fournitures', qte: '', pu: '', montant: s.fournitures },
+    ...lignesAjustements(entries, extra),
   ].filter((p) => p.montant > 0 || p.garder);
 }
 
-export function buildRecapText(entries, settings, { details = true, chantier = null, nbTickets = 0 } = {}) {
+export function buildRecapText(entries, settings, { details = true, chantier = null, nbTickets = 0, extra = [] } = {}) {
   const list = sortByDate(entries);
   const noms = [...new Set(list.map((e) => e.chantierNom || 'Chantier'))];
   const unSeul = noms.length === 1;
   const s = sumEntries(list);
   const lignes = [];
+  const lignesExtra = [];
 
   lignes.push(`🔨 Récapitulatif des prestations${unSeul ? ` — ${noms[0]}` : ''}`);
   if (unSeul && chantier?.adresse) lignes.push(chantier.adresse);
@@ -121,11 +148,24 @@ export function buildRecapText(entries, settings, { details = true, chantier = n
     lignes.push('');
   }
 
+  const tx = extra.reduce(
+    (acc, a) => {
+      const m = Math.abs(parseFloat(String(a.montant ?? '').replace(',', '.')) || 0);
+      if (!m) return acc;
+      lignesExtra.push(`${a.type === 'deduction' ? '−' : '+'} ${a.libelle || (a.type === 'deduction' ? 'Déduction' : 'Ajout')} : ${eur(m)}`);
+      return acc + (a.type === 'deduction' ? -m : m);
+    },
+    0
+  );
+  if (lignesExtra.length) {
+    lignes.push(...lignesExtra);
+    lignes.push('');
+  }
   lignes.push('━━━━━━━━━━━━');
   if (details) {
     for (const p of postes(list)) lignes.push(`${p.libelle} : ${eur(p.montant)}`);
   }
-  lignes.push(`COÛT TOTAL : ${eur(s.total)}`);
+  lignes.push(`COÛT TOTAL : ${eur(s.total + tx)}`);
   if (s.trajetOffert > 0) lignes.push(`🎁 Temps de trajet offert : ${eur(s.trajetOffert)} (non compté)`);
   if (s.deplacementOffert > 0) lignes.push(`🎁 Kilomètres offerts : ${eur(s.deplacementOffert)} (non comptés)`);
   if (nbTickets) lignes.push(`🧾 ${nbTickets} photo${nbTickets > 1 ? 's' : ''} de ticket${nbTickets > 1 ? 's' : ''} jointe${nbTickets > 1 ? 's' : ''}`);
