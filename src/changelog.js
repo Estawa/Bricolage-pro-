@@ -1,6 +1,19 @@
-export const APP_VERSION = '1.4.2';
+export const APP_VERSION = '1.5.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.5.0',
+    date: '06/10/2026',
+    items: [
+      'Temps de trajet moyen par chantier, depuis la maison et depuis le travail (calcul automatique possible)',
+      'Trajet facturé à un tarif horaire dédié, ou non facturé',
+      'Comparaison immédiate dans la prestation : coût avec trajet facturé / non facturé',
+      '🎁 Trajet offert : valeur du « cadeau » affichée (prestation, compteurs, chantier, bilan, fiche de coût)',
+      'Trajet retiré automatiquement du temps de travail quand il est saisi en horaires (porte à porte)',
+      'Fiche de coût : ligne « Temps de trajet » et mention « Geste commercial : temps de trajet offert »',
+      'Comparaison A / B : tarif trajet et choix facturé / non facturé',
+    ],
+  },
   {
     version: '1.4.2',
     date: '06/10/2026',
