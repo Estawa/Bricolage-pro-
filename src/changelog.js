@@ -1,6 +1,15 @@
-export const APP_VERSION = '1.5.2';
+export const APP_VERSION = '1.6.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.6.0',
+    date: '06/10/2026',
+    items: [
+      'Lignes libres « À ajouter » / « À déduire » (montant + observation), autant que nécessaire',
+      'Dans chaque prestation (datées), ou sur la fiche récap sans date (enregistrées avec le chantier)',
+      'Comptées dans la fiche récap, la fiche chantier, les compteurs et le bilan (mois / année), et dans l’export CSV',
+    ],
+  },
   {
     version: '1.5.2',
     date: '06/10/2026',

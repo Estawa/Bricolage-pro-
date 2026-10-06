@@ -169,7 +169,7 @@ export default function App() {
         )}
         {tab === 'calendrier' && (
           <>
-            <Counters entries={entries} selectedDate={selectedDate} viewMonth={viewMonth} />
+            <Counters entries={entries} chantiers={chantiers} selectedDate={selectedDate} viewMonth={viewMonth} />
             <Calendar entries={entries} viewMonth={viewMonth} setViewMonth={setViewMonth} selectedDate={selectedDate} onSelect={selectDay} />
             <DayView
               date={selectedDate}
@@ -222,7 +222,7 @@ export default function App() {
             setSettings={store.setSettings}
           />
         )}
-        {tab === 'bilan' && <Bilan entries={entries} viewMonth={viewMonth} settings={s} />}
+        {tab === 'bilan' && <Bilan entries={entries} chantiers={chantiers} viewMonth={viewMonth} settings={s} />}
         {tab === 'reglages' && (
           <Settings
             settings={s}
@@ -310,6 +310,7 @@ export default function App() {
           settings={s}
           chantier={chantierDe(fiche)}
           chantiers={chantiers}
+          onSaveChantier={store.saveChantier}
           onClose={() => setFiche(null)}
           onSaveChoix={(list) => {
             store.saveEntries(list);
