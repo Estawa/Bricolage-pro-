@@ -1,5 +1,12 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.6.0 — 06/10/2026
+- Lignes « À ajouter » / « À déduire » avec montant et observation (ex. « repas offert »), en nombre illimité
+- Dans chaque prestation : lignes datées par la prestation
+- Sur la fiche récap : lignes sans date, enregistrées avec le chantier et comptées au mois de leur saisie
+- Fiche récap : lignes affichées dans le détail et dans le récapitulatif (+ / −), coût total ajusté
+- Fiche chantier, compteurs, bilan mois/année et export CSV tiennent compte des ajouts / déductions
+
 v1.5.2 — 06/10/2026
 - Fiche de coût : alerte si aucune prestation n'a de temps de trajet + bouton « Compléter depuis le chantier »
 - Ajout des temps de trajet à un chantier : proposition de les reporter dans les prestations déjà saisies
