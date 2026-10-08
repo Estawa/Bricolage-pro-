@@ -1,6 +1,16 @@
-export const APP_VERSION = '1.6.0';
+export const APP_VERSION = '1.7.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.7.0',
+    date: '08/10/2026',
+    items: [
+      'Fiche récapitulative en vrai fichier PDF (A4, noir et blanc, 1 à 2 pages) : « Envoyer en PDF » et « Télécharger le PDF »',
+      'Le PDF reprend toute la fiche (détail, récapitulatif, coût total, geste commercial, ajouts / déductions) et les tickets en annexe',
+      'Aucune intervention ni le récapitulatif ne sont coupés entre deux pages ; pages numérotées',
+      'Partager (jour / chantier) : l’envoi principal devient la fiche PDF ; le message texte reste disponible',
+    ],
+  },
   {
     version: '1.6.0',
     date: '06/10/2026',
