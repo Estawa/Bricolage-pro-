@@ -1,5 +1,11 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.7.0 — 08/10/2026
+- Fiche récapitulative exportée en vrai fichier PDF (A4, noir et blanc), à joindre dans WhatsApp / mail : plus de message tronqué
+- Boutons « Envoyer en PDF » et « Télécharger le PDF » sur la fiche ; « Envoyer la fiche en PDF » dans Partager
+- Contenu identique à la fiche de l'appli (options trajet / km, détail, ajouts / déductions, geste commercial), tickets en annexe
+- Blocs jamais coupés entre deux pages, pages numérotées ; la fiche à l'écran reste inchangée
+
 v1.6.0 — 06/10/2026
 - Lignes « À ajouter » / « À déduire » avec montant et observation (ex. « repas offert »), en nombre illimité
 - Dans chaque prestation : lignes datées par la prestation
