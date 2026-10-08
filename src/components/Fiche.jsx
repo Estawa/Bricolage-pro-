@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Printer, Share2 } from 'lucide-react';
+import { X, Printer, Share2, FileDown, Send, Loader2 } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1 } from '../utils/calc';
 import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses } from '../utils/recap';
-import { usePhoto } from '../utils/photos';
+import { usePhoto, usePhotoApi, photoCache } from '../utils/photos';
+import { genererPdfFiche, envoyerPdf, telechargerPdf } from '../utils/pdfFiche';
 import { trajetManquant, completerTrajet } from '../utils/trajet';
 import { totauxAjustements } from '../utils/ajustements';
 import Ajustements from './Ajustements';
@@ -48,6 +49,37 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
   const co = settings.coordonnees || {};
   const tickets = list.flatMap((e) => (e.tickets || []).map((t) => ({ ...t, date: e.date })));
 
+  const photos = usePhotoApi();
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfInfo, setPdfInfo] = useState('');
+  const faitPdf = async (mode) => {
+    setPdfBusy(true);
+    setPdfInfo('');
+    try {
+      const pdf = await genererPdfFiche({
+        entries: list,
+        extra,
+        settings,
+        chantier,
+        detail,
+        annexe,
+        getPhoto: async (id) => photoCache.get(id) || (photos ? await photos.get(id) : null),
+      });
+      if (mode === 'telecharger') {
+        telechargerPdf(pdf);
+        setPdfInfo(`PDF enregistré (${pdf.pages} page${pdf.pages > 1 ? 's' : ''}).`);
+      } else {
+        const r = await envoyerPdf(pdf, `Récapitulatif — ${nomChantier}`);
+        if (r === 'telecharge') setPdfInfo('Envoi direct impossible ici : le PDF a été téléchargé, joignez-le à votre message.');
+      }
+    } catch (e) {
+      console.error(e);
+      setPdfInfo('Le PDF n’a pas pu être créé.');
+    } finally {
+      setPdfBusy(false);
+    }
+  };
+
   const partagerTexte = async () => {
     const texte = buildRecapText(list, settings, { details: detail, chantier, extra });
     try {
@@ -70,12 +102,27 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
             <X size={20} />
           </button>
           <span className="flex-1 font-semibold text-stone-800">Fiche récapitulative</span>
-          <button type="button" onClick={partagerTexte} className="flex items-center gap-1 rounded-xl bg-stone-100 px-3 py-2 text-sm font-semibold text-stone-700">
-            <Share2 size={16} /> Texte
+          <button
+            type="button"
+            onClick={() => faitPdf('envoyer')}
+            disabled={pdfBusy}
+            className="flex items-center gap-1 rounded-xl bg-orange-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            data-testid="pdf-envoyer"
+          >
+            {pdfBusy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Envoyer en PDF
           </button>
-          <button type="button" onClick={() => window.print()} className="flex items-center gap-1 rounded-xl bg-orange-600 px-3 py-2 text-sm font-semibold text-white">
-            <Printer size={16} /> Imprimer / PDF
+        </div>
+        <div className="mx-auto mt-2 flex max-w-3xl flex-wrap items-center gap-2 text-sm">
+          <button type="button" onClick={() => faitPdf('telecharger')} disabled={pdfBusy} className="flex items-center gap-1 rounded-xl bg-stone-100 px-3 py-1.5 font-semibold text-stone-700" data-testid="pdf-telecharger">
+            <FileDown size={16} /> Télécharger le PDF
           </button>
+          <button type="button" onClick={() => window.print()} className="flex items-center gap-1 rounded-xl bg-stone-100 px-3 py-1.5 font-semibold text-stone-700">
+            <Printer size={16} /> Imprimer
+          </button>
+          <button type="button" onClick={partagerTexte} className="flex items-center gap-1 rounded-xl bg-stone-100 px-3 py-1.5 font-semibold text-stone-700">
+            <Share2 size={16} /> Texte court
+          </button>
+          {pdfInfo && <span className="text-xs text-stone-600" data-testid="pdf-info">{pdfInfo}</span>}
         </div>
         <div className="mx-auto mt-2 flex max-w-3xl flex-wrap gap-4 text-sm text-stone-700">
           <label className="flex items-center gap-2">

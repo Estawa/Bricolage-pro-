@@ -5,6 +5,7 @@ import { buildRecapText, sortByDate } from '../utils/recap';
 import { dataUrlToFile, photoCache, usePhotoApi } from '../utils/photos';
 import { Modal, Button, Toggle } from './ui';
 import { TicketThumb } from './Tickets';
+import { genererPdfFiche, envoyerPdf } from '../utils/pdfFiche';
 
 // Partage d'une sélection de prestations (texte récapitulatif + photos des tickets choisis)
 export default function Share({ entries, settings, chantier, onClose, onFiche }) {
@@ -65,6 +66,30 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
     }
   };
 
+  const envoyerFichePdf = async () => {
+    setBusy(true);
+    setInfo('');
+    try {
+      const pdf = await genererPdfFiche({
+        entries: list,
+        extra: chantier?.ajustements || [],
+        settings,
+        chantier,
+        detail: details,
+        annexe: avecTickets && ticketsChoisis.length > 0,
+        // seuls les tickets sélectionnés vont en annexe
+        getPhoto: async (id) => (choix.has(id) ? photoCache.get(id) || (await photos.get(id)) : null),
+      });
+      const r = await envoyerPdf(pdf, titre);
+      if (r === 'telecharge') setInfo('Envoi direct impossible ici : le PDF a été téléchargé, joignez-le à votre message.');
+    } catch (e) {
+      console.error(e);
+      setInfo('Le PDF n’a pas pu être créé.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const copier = async () => {
     try {
       await navigator.clipboard.writeText(texte);
@@ -80,9 +105,12 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
       onClose={onClose}
       footer={
         <div className="space-y-2">
-          <Button className="w-full" onClick={partager} disabled={busy} data-testid="partager">
-            {busy ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
-            Partager (WhatsApp, mail…){ticketsChoisis.length ? ` + ${ticketsChoisis.length} photo${ticketsChoisis.length > 1 ? 's' : ''}` : ''}
+          <Button className="w-full" onClick={envoyerFichePdf} disabled={busy} data-testid="partager-pdf">
+            {busy ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+            Envoyer la fiche en PDF{ticketsChoisis.length ? ` (+ ${ticketsChoisis.length} ticket${ticketsChoisis.length > 1 ? 's' : ''} en annexe)` : ''}
+          </Button>
+          <Button variant="ghost" className="w-full py-2 text-sm" onClick={partager} disabled={busy} data-testid="partager">
+            <Share2 size={16} /> Message texte{ticketsChoisis.length ? ` + ${ticketsChoisis.length} photo${ticketsChoisis.length > 1 ? 's' : ''}` : ''}
           </Button>
           {info && <p className="text-center text-xs text-stone-500" data-testid="share-info">{info}</p>}
         </div>
