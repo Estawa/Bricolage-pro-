@@ -53,3 +53,59 @@ export async function distancesDepuisBases(adresseChantier, bases) {
   const t = await routeKmMin(basesCoords.travail, coords);
   return { kmMaison: m.km, kmTravail: t.km, minMaison: m.min, minTravail: t.min, coords, basesCoords };
 }
+
+// ---------------------------------------------------------------
+// Passages au magasin (matériel)
+// ---------------------------------------------------------------
+// Coordonnées mémorisées par adresse (évite de redemander à chaque calcul)
+const CACHE_KEY = 'bricolage-pro:geocache';
+function lireCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+export async function geocodeMemo(adresse) {
+  const k = String(adresse || '').trim().toLowerCase();
+  if (!k) throw new Error('Adresse manquante');
+  const cache = lireCache();
+  if (cache[k]) return cache[k];
+  const c = await geocode(adresse);
+  cache[k] = c;
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    /* ignore */
+  }
+  await pause(1100); // Nominatim : 1 requête / seconde
+  return c;
+}
+
+// Coordonnées d'un lieu : 'maison' | 'travail' | 'chantier'
+async function coordsLieu(lieu, { bases, chantier }) {
+  if (lieu === 'chantier') {
+    if (!chantier?.adresse) throw new Error('Adresse du chantier manquante (fiche chantier)');
+    return geocodeMemo(chantier.adresse);
+  }
+  const b = bases[lieu];
+  if (b?.lat != null && b?.lon != null) return { lat: b.lat, lon: b.lon };
+  return geocodeMemo(b?.adresse);
+}
+
+// Trajet « depuis → magasin → vers ».
+// Si départ et arrivée diffèrent (ex. Maison → magasin → Chantier), ce trajet remplace le trajet direct :
+// seul le détour est compté. Si c'est le même lieu (Chantier → magasin → Chantier), tout l'aller-retour compte.
+export async function calculerPassage({ depuis, vers, magasin, bases, chantier }) {
+  if (!magasin?.adresse) throw new Error('Adresse du magasin manquante (Réglages)');
+  const A = await coordsLieu(depuis, { bases, chantier });
+  const B = depuis === vers ? A : await coordsLieu(vers, { bases, chantier });
+  const S = await geocodeMemo(magasin.adresse);
+  const l1 = await routeKmMin(A, S);
+  const l2 = await routeKmMin(S, B);
+  const via = Math.round((l1.km + l2.km) * 10) / 10;
+  let direct = 0;
+  if (depuis !== vers) direct = (await routeKmMin(A, B)).km;
+  const detour = Math.max(0, Math.round((via - direct) * 10) / 10);
+  return { via, direct, detour, minutes: l1.min + l2.min };
+}

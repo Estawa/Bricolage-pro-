@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = {
   tauxTrajet: 20, // €/h temps de trajet (aller + retour)
   trajetDefaut: 'tarif', // 'tarif' = compté au tarif trajet, 'offert' = non compté
   coordonnees: { nom: 'Christophe Guilhem', telephone: '', email: '', adresse: 'Champcueil' },
+  magasins: [], // lieux où l'on va chercher le matériel : { id, nom, adresse }
   bases: {
     maison: { label: 'Maison', adresse: 'Champcueil, 91750, France', lat: null, lon: null },
     travail: {

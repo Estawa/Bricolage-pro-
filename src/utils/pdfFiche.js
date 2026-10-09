@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { computeEntry, sumEntries, eur, hm, km1, isoDate } from './calc';
-import { sortByDate, periode, frDate, postes, detailMontants, horairesTravail, horairesCourses } from './recap';
+import { sortByDate, periode, frDate, postes, detailMontants, horairesTravail, horairesCourses, texteMateriel } from './recap';
 import { totauxAjustements } from './ajustements';
 
 const NOIR = rgb(0, 0, 0);
@@ -134,7 +134,7 @@ export async function genererPdfFiche({ entries, extra = [], settings, chantier,
     const infos = [
       c.hT ? `Main-d'œuvre ${hm(c.hT)}${horairesTravail(e) ? ` (${horairesTravail(e)})` : ''}` : null,
       c.hC ? `Courses ${hm(c.hC)}${horairesCourses(e) ? ` (${horairesCourses(e)})` : ''}` : null,
-      e.sansKm ? null : `${km1(c.km)}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`,
+      e.sansKm ? null : `${km1(c.km)}${texteMateriel(e) ? ` ${texteMateriel(e)}` : ''}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`,
       c.hTrajet ? `Trajet ${hm(c.hTrajet)} ${e.trajetMode === 'offert' ? `(offert, valeur ${eur(c.trajetOffert)})` : '(facturé)'}` : null,
       e.camion ? 'Camion' : null,
       e.nettoyage ? 'Nettoyage camion' : null,

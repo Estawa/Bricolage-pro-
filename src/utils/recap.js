@@ -26,6 +26,15 @@ export function horairesCourses(e) {
   return e.coursesMode === 'horaires' ? plage(e.coursesDebut, e.coursesFin, e.coursesPause) : '';
 }
 
+// « dont 8 km matériel (Leroy Merlin, Point P) »
+export function texteMateriel(e) {
+  const p = (e.passages || []).filter((x) => x.magasinNom);
+  const km = parseFloat(String(e.kmCourses ?? '').replace(',', '.')) || 0;
+  if (e.sansKm || (!km && !p.length)) return '';
+  const noms = [...new Set(p.map((x) => x.magasinNom))].join(', ');
+  return `dont ${km1(km)} matériel${noms ? ` (${noms})` : ''}`;
+}
+
 export function resumeLigne(e) {
   const c = computeEntry(e);
   const parts = [];
@@ -33,7 +42,7 @@ export function resumeLigne(e) {
   const hC = horairesCourses(e);
   if (c.hT) parts.push(`Main-d'œuvre ${hm(c.hT)}${hT ? ` (${hT})` : ''}`);
   if (c.hC) parts.push(`Courses ${hm(c.hC)}${hC ? ` (${hC})` : ''}`);
-  parts.push(e.sansKm ? 'Sans km' : `${km1(c.km)}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`);
+  parts.push(e.sansKm ? 'Sans km' : `${km1(c.km)}${texteMateriel(e) ? ` ${texteMateriel(e)}` : ''}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`);
   if (c.hTrajet) parts.push(`Trajet ${hm(c.hTrajet)}${e.trajetMode === 'offert' ? ` (offert, valeur ${eur(c.trajetOffert)})` : ''}`);
   if (e.camion) parts.push('Camion');
   if (e.nettoyage) parts.push('Nettoyage camion');
