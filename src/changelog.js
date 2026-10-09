@@ -1,6 +1,26 @@
-export const APP_VERSION = '1.7.0';
+export const APP_VERSION = '1.8.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.8.1',
+    date: '09/10/2026',
+    items: [
+      'Magasins favoris (⭐ dans les Réglages) en raccourcis dans chaque prestation : un appui ajoute le passage et calcule les km',
+      'Dernier trajet mémorisé pour chaque magasin (depuis / vers / sur le trajet), les plus utilisés proposés en raccourci',
+      'Ajout d’un nouveau magasin directement depuis la prestation (enregistré en favori)',
+    ],
+  },
+  {
+    version: '1.8.0',
+    date: '09/10/2026',
+    items: [
+      'Magasins (lieux de matériel) dans les Réglages : nom + adresse',
+      'Passages au magasin dans chaque prestation : depuis Maison / Travail / Chantier, puis vers Chantier / Travail / Maison',
+      'Calcul automatique des km par la route : détour seul si le passage remplace un trajet, aller-retour complet sinon',
+      'Option « Sur mon trajet, sans détour (0 km) » et km modifiables à la main',
+      'Km matériel et magasins mentionnés sur la carte, la fiche, le PDF et le message',
+    ],
+  },
   {
     version: '1.7.0',
     date: '08/10/2026',

@@ -274,6 +274,7 @@ export default function App() {
             setForm(null);
           }}
           onClose={() => setForm(null)}
+          onAddMagasin={(m) => store.setSettings((prev) => ({ ...prev, magasins: [...(prev.magasins || []), m] }))}
         />
       )}
 
