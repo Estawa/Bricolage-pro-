@@ -1,5 +1,17 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.8.1 — 09/10/2026
+- Magasins favoris (étoile dans les Réglages) affichés en raccourcis dans les prestations : un appui = passage ajouté + km calculés
+- Mémorisation du dernier trajet utilisé pour chaque magasin (depuis, vers, sur le trajet) ; magasins les plus utilisés en raccourci
+- « Nouveau magasin » directement dans la prestation, enregistré pour les fois suivantes (en favori)
+
+v1.8.0 — 09/10/2026
+- Réglages : liste des magasins / lieux de matériel (nom + adresse)
+- Prestation : passages au magasin (plusieurs possibles), depuis Maison / Travail / Chantier puis vers Chantier / Travail / Maison
+- Calcul par la route : Maison -> magasin -> Chantier = détour compté (trajet direct déjà compté) ; Chantier -> magasin -> Chantier = aller-retour complet
+- Option « Sur mon trajet, sans détour (0 km) » ; km toujours modifiables à la main
+- Total reporté dans « Km supplémentaires pour les courses » ; mention « dont X km matériel (magasins) » sur la carte, la fiche, le PDF et le message
+
 v1.7.0 — 08/10/2026
 - Fiche récapitulative exportée en vrai fichier PDF (A4, noir et blanc), à joindre dans WhatsApp / mail : plus de message tronqué
 - Boutons « Envoyer en PDF » et « Télécharger le PDF » sur la fiche ; « Envoyer la fiche en PDF » dans Partager
