@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { usePhotoApi } from '../utils/photos';
-import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2, User, Loader2, Scale } from 'lucide-react';
+import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2, User, Loader2, Scale, Store, Plus, Star } from 'lucide-react';
+import { uid } from '../utils/calc';
 import { DEFAULT_SETTINGS, isoDate } from '../utils/calc';
 import { downloadFile } from '../utils/storage';
 import { Card, Label, NumberField, Button, inputCls, Segmented } from './ui';
@@ -108,6 +109,58 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
           <Sparkles size={14} className="mt-0.5 shrink-0" />
           Exemple : gravats, gros outillage, déchetterie. Mettez 0 pour un poste que vous ne facturez pas.
         </p>
+      </Card>
+
+      <Card className="space-y-3">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <Store size={18} className="text-orange-600" /> Magasins (matériel)
+        </h3>
+        <p className="text-xs text-stone-500">
+          Les lieux où vous allez chercher le matériel. ⭐ = favori : il apparaît en raccourci dans chaque prestation (un appui ajoute le passage et calcule les km).
+        </p>
+        {(settings.magasins || []).map((m) => (
+          <div key={m.id} className="space-y-2 rounded-xl bg-stone-50 p-3 dark:bg-stone-900/60" data-testid="magasin">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={`rounded-lg p-2 ${m.favori ? 'text-amber-500' : 'text-stone-300 dark:text-stone-600'}`}
+                aria-label={m.favori ? 'Retirer des favoris' : 'Mettre en favori'}
+                title={m.favori ? 'Favori (raccourci dans les prestations)' : 'Mettre en favori'}
+                onClick={() => setSettings((s) => ({ ...s, magasins: s.magasins.map((x) => (x.id === m.id ? { ...x, favori: !x.favori } : x)) }))}
+                data-testid="magasin-favori"
+              >
+                <Star size={18} className={m.favori ? 'fill-current' : ''} />
+              </button>
+              <input
+                className={`${inputCls} flex-1`}
+                placeholder="Nom (ex. Leroy Merlin Villabé)"
+                value={m.nom}
+                onChange={(e) => setSettings((s) => ({ ...s, magasins: s.magasins.map((x) => (x.id === m.id ? { ...x, nom: e.target.value } : x)) }))}
+                data-testid="magasin-nom"
+              />
+              <button
+                type="button"
+                className="rounded-lg p-2 text-red-600"
+                aria-label="Supprimer le magasin"
+                onClick={() => {
+                  if (confirm(`Supprimer « ${m.nom || 'ce magasin'} » ?`)) setSettings((s) => ({ ...s, magasins: s.magasins.filter((x) => x.id !== m.id) }));
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+            <input
+              className={inputCls}
+              placeholder="Adresse (ex. Centre commercial Villabé A6, 91100 Villabé)"
+              value={m.adresse}
+              onChange={(e) => setSettings((s) => ({ ...s, magasins: s.magasins.map((x) => (x.id === m.id ? { ...x, adresse: e.target.value } : x)) }))}
+              data-testid="magasin-adresse"
+            />
+          </div>
+        ))}
+        <Button variant="ghost" className="w-full" onClick={() => setSettings((s) => ({ ...s, magasins: [...(s.magasins || []), { id: uid(), nom: '', adresse: '' }] }))} data-testid="ajouter-magasin">
+          <Plus size={18} /> Ajouter un magasin
+        </Button>
       </Card>
 
       <Card className="space-y-3">

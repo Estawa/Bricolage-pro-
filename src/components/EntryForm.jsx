@@ -7,6 +7,7 @@ import { TicketThumb, PhotoViewer } from './Tickets';
 import { Modal, Label, NumberField, Segmented, Toggle, Button, inputCls } from './ui';
 import TempsField, { modeParDefaut } from './TempsField';
 import Ajustements from './Ajustements';
+import PassagesMagasin, { kmPassages } from './PassagesMagasin';
 
 const LIBRE = '__libre__';
 
@@ -22,7 +23,7 @@ function kmFor(chantier, base) {
   return v ?? '';
 }
 
-export default function EntryForm({ date, entry, initialChantierId, chantiers, settings, onSave, onClose }) {
+export default function EntryForm({ date, entry, initialChantierId, chantiers, settings, onSave, onClose, onAddMagasin }) {
   const isNew = !entry;
   const photos = usePhotoApi();
   const [recalc, setRecalc] = useState(false);
@@ -305,6 +306,14 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
                 Kilomètres offerts (non facturés)
                 {calc.deplacementOffert > 0 && <span className="font-semibold text-emerald-700 dark:text-emerald-400">🎁 {eur(calc.deplacementOffert)}</span>}
               </label>
+              <PassagesMagasin
+                value={f.passages || []}
+                onChange={(v) => set({ passages: v, kmCourses: v.length ? String(kmPassages(v)) : '' })}
+                settings={settings}
+                chantier={chantier}
+                depart={f.depart}
+                onAddMagasin={onAddMagasin}
+              />
               <NumberField
                 id="km-courses"
                 label="Km supplémentaires pour les courses"

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, Share2, FileDown, Send, Loader2 } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1 } from '../utils/calc';
-import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses } from '../utils/recap';
+import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses, texteMateriel } from '../utils/recap';
 import { usePhoto, usePhotoApi, photoCache } from '../utils/photos';
 import { genererPdfFiche, envoyerPdf, telechargerPdf } from '../utils/pdfFiche';
 import { trajetManquant, completerTrajet } from '../utils/trajet';
@@ -276,7 +276,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
                       {[
                         c.hT ? `Main-d'œuvre ${hm(c.hT)}${horairesTravail(e) ? ` (${horairesTravail(e)})` : ''}` : null,
                         c.hC ? `Courses ${hm(c.hC)}${horairesCourses(e) ? ` (${horairesCourses(e)})` : ''}` : null,
-                        e.sansKm ? null : `${km1(c.km)}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`,
+                        e.sansKm ? null : `${km1(c.km)}${texteMateriel(e) ? ` ${texteMateriel(e)}` : ''}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`,
                         c.hTrajet
                           ? `Trajet ${hm(c.hTrajet)} ${e.trajetMode === 'offert' ? `(offert, valeur ${eur(c.trajetOffert)})` : '(facturé)'}${e.trajetDeduit ? ', retiré du temps de travail' : ''}`
                           : null,

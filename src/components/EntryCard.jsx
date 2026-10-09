@@ -80,6 +80,11 @@ export default function EntryCard({ entry: e, settings, showDate, showChantier =
             <Sparkles size={12} /> Nettoyage
           </Chip>
         )}
+        {(e.passages || []).map((p) => (
+          <Chip key={p.id}>
+            🏪 {p.magasinNom || 'magasin'} · {p.surTrajet ? 'sur le trajet' : `+${km1(parseFloat(p.km) || 0)}`}
+          </Chip>
+        ))}
         {c.fournitures > 0 && <Chip>📦 {eur(c.fournitures)}</Chip>}
         {(e.ajustements || []).filter((a) => parseFloat(a.montant)).map((a) => (
           <Chip key={a.id}>
