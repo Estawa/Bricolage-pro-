@@ -1,6 +1,6 @@
-import { Pencil, Trash2, Copy, Truck, Sparkles, ArrowRight, RefreshCw, Receipt } from 'lucide-react';
+import { Pencil, Trash2, Copy, Truck, Sparkles, ArrowRight, RefreshCw, Receipt, Image } from 'lucide-react';
 import { computeEntry, snapshotTarifs, eur, hm, km1, shortDate, totalTickets } from '../utils/calc';
-import { TicketStrip } from './Tickets';
+import { TicketStrip, PhotoChantierStrip } from './Tickets';
 import { horairesTravail, horairesCourses } from '../utils/recap';
 
 const num = (v) => parseFloat(String(v ?? '').replace(',', '.')) || 0;
@@ -97,11 +97,17 @@ export default function EntryCard({ entry: e, settings, showDate, showChantier =
             {tk > 0 && ` · ${eur(tk)}`}
           </Chip>
         )}
+        {e.photosChantier?.length > 0 && (
+          <Chip>
+            <Image size={12} /> {e.photosChantier.length} photo{e.photosChantier.length > 1 ? 's' : ''}
+          </Chip>
+        )}
         {anciensTarifs(e, settings) && <Chip warn>Anciens tarifs</Chip>}
       </div>
 
       {e.description && <p className="mt-2 whitespace-pre-line text-sm text-stone-600 dark:text-stone-300">{e.description}</p>}
       <TicketStrip tickets={e.tickets} />
+      <PhotoChantierStrip photos={e.photosChantier} />
 
       <div className="mt-1 flex justify-end gap-1">
         <IconBtn onClick={() => onRecalc(e)} label="Recalculer avec les tarifs actuels" testid="recalc">
@@ -117,7 +123,7 @@ export default function EntryCard({ entry: e, settings, showDate, showChantier =
         </IconBtn>
         <IconBtn
           onClick={() => {
-            if (confirm('Supprimer cette prestation (et ses photos de tickets) ?')) onDelete(e);
+            if (confirm('Supprimer cette prestation (et ses photos) ?')) onDelete(e);
           }}
           label="Supprimer"
           danger

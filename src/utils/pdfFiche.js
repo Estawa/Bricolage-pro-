@@ -6,6 +6,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { computeEntry, sumEntries, eur, hm, km1, isoDate } from './calc';
 import { sortByDate, periode, frDate, postes, detailMontants, horairesTravail, horairesCourses, texteMateriel } from './recap';
 import { totauxAjustements } from './ajustements';
+import { LARGEUR_PHOTO } from './photos';
 
 const NOIR = rgb(0, 0, 0);
 const W = 595.28;
@@ -24,7 +25,8 @@ function propre(t) {
     .trim();
 }
 
-export async function genererPdfFiche({ entries, extra = [], settings, chantier, detail = true, annexe = true, getPhoto }) {
+// photosChantier : [{ id, date, legende, taille: 'petit' | 'moyen' | 'grand' }] déjà filtrées (seules celles à imprimer)
+export async function genererPdfFiche({ entries, extra = [], settings, chantier, detail = true, annexe = true, photosChantier = [], getPhoto, getPhotoChantier }) {
   const list = sortByDate(entries);
   const s = sumEntries(list);
   const tx = totauxAjustements(extra);
@@ -222,6 +224,73 @@ export async function genererPdfFiche({ entries, extra = [], settings, chantier,
   texte('Document récapitulatif du coût des prestations réalisées - ne constitue pas une facture.', M, 7);
   y -= 14;
 
+  // image (data URL) -> image intégrée au PDF, ou null si illisible
+  const integrer = async (data) => {
+    if (!data || !String(data).startsWith('data:image/')) return null;
+    const bytes = Uint8Array.from(atob(String(data).split(',')[1]), (ch) => ch.charCodeAt(0));
+    try {
+      return String(data).startsWith('data:image/png') ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+    } catch {
+      return null;
+    }
+  };
+
+  // ---------- Photos du chantier (petit = 4 par ligne, moyen = 2, grand = 1) ----------
+  const lirePhotoChantier = getPhotoChantier || getPhoto;
+  if (photosChantier.length && lirePhotoChantier) {
+    const GAP = 10;
+    const largeurUtile = W - 2 * M;
+    const HMAX = { petit: 115, moyen: 235, grand: 470 };
+    const items = [];
+    for (const p of photosChantier) {
+      const img = await integrer(await lirePhotoChantier(p.id));
+      if (!img) continue;
+      const part = LARGEUR_PHOTO[p.taille] || 0.5;
+      const cw = part * (largeurUtile + GAP) - GAP; // largeur de la case
+      const k = Math.min((cw - 6) / img.width, HMAX[p.taille] / img.height);
+      const leg = [frDate(p.date), p.legende].filter(Boolean).join(' - ');
+      const tailleLeg = p.taille === 'petit' ? 6.5 : 7.5;
+      const lignesLeg = couper(leg, tailleLeg, cw - 4).slice(0, p.taille === 'petit' ? 2 : 3);
+      items.push({ img, part, cw, iw: img.width * k, ih: img.height * k, lignesLeg, tailleLeg });
+    }
+    // regroupement en lignes, dans l'ordre chronologique
+    const rangees = [];
+    let cur = [];
+    let somme = 0;
+    for (const it of items) {
+      if (somme + it.part > 1.0001) {
+        rangees.push(cur);
+        cur = [];
+        somme = 0;
+      }
+      cur.push(it);
+      somme += it.part;
+    }
+    if (cur.length) rangees.push(cur);
+    const hauteurRangee = (r) => Math.max(...r.map((it) => it.ih + 8 + it.lignesLeg.length * (it.tailleLeg + 2)));
+
+    rangees.forEach((r, i) => {
+      const hr = hauteurRangee(r);
+      if (i === 0) {
+        // le titre ne reste jamais seul en bas de page
+        y -= 8;
+        place(18 + hr);
+        texte('PHOTOS DU CHANTIER', M, 10, F.b);
+        y -= 16;
+      } else place(hr);
+      let x = M;
+      // même hauteur de cadre pour toute la ligne : légendes alignées
+      const hCase = Math.max(...r.map((it) => it.ih)) + 6;
+      for (const it of r) {
+        page.drawRectangle({ x, y: y - hCase, width: it.cw, height: hCase, borderColor: NOIR, borderWidth: 0.4 });
+        page.drawImage(it.img, { x: x + (it.cw - it.iw) / 2, y: y - hCase + (hCase - it.ih) / 2, width: it.iw, height: it.ih });
+        it.lignesLeg.forEach((l, j) => texte(l, x + 2, it.tailleLeg, F.r, { y: y - hCase - 8 - j * (it.tailleLeg + 2) }));
+        x += it.cw + GAP;
+      }
+      y -= hr + 10;
+    });
+  }
+
   // ---------- Annexe : tickets de caisse ----------
   const tickets = list.flatMap((e) => (e.tickets || []).map((t) => ({ ...t, date: e.date })));
   if (annexe && tickets.length && getPhoto) {
@@ -233,15 +302,8 @@ export async function genererPdfFiche({ entries, extra = [], settings, chantier,
     let col = 0;
     let hLigne = 0;
     for (const t of tickets) {
-      const data = await getPhoto(t.id);
-      if (!data || !String(data).startsWith('data:image/')) continue;
-      const bytes = Uint8Array.from(atob(String(data).split(',')[1]), (ch) => ch.charCodeAt(0));
-      let img;
-      try {
-        img = String(data).startsWith('data:image/png') ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-      } catch {
-        continue;
-      }
+      const img = await integrer(await getPhoto(t.id));
+      if (!img) continue;
       const k = Math.min(colW / img.width, maxH / img.height);
       const iw = img.width * k;
       const ih = img.height * k;

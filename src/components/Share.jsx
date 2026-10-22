@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Share2, Copy, Mail, MessageCircle, FileText, Check, Loader2 } from 'lucide-react';
 import { sumEntries, eur, shortDate } from '../utils/calc';
 import { buildRecapText, sortByDate } from '../utils/recap';
-import { dataUrlToFile, photoCache, usePhotoApi } from '../utils/photos';
+import { dataUrlToFile, photoCache, usePhotoApi, photosDeChantier, tailleFiche } from '../utils/photos';
 import { Modal, Button, Toggle } from './ui';
 import { TicketThumb } from './Tickets';
 import { genererPdfFiche, envoyerPdf } from '../utils/pdfFiche';
@@ -15,6 +15,8 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
   const [details, setDetails] = useState(true);
   const [avecTickets, setAvecTickets] = useState(tickets.length > 0);
   const [choix, setChoix] = useState(() => new Set(tickets.map((t) => t.id)));
+  const photosFiche = useMemo(() => photosDeChantier(list).filter((p) => tailleFiche(p)).map((p) => ({ ...p, taille: tailleFiche(p) })), [list]);
+  const [avecPhotos, setAvecPhotos] = useState(true);
   const [busy, setBusy] = useState(false);
   const [info, setInfo] = useState('');
 
@@ -77,6 +79,8 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
         chantier,
         detail: details,
         annexe: avecTickets && ticketsChoisis.length > 0,
+        photosChantier: avecPhotos ? photosFiche : [],
+        getPhotoChantier: async (id) => photoCache.get(id) || (await photos.get(id)),
         // seuls les tickets sélectionnés vont en annexe
         getPhoto: async (id) => (choix.has(id) ? photoCache.get(id) || (await photos.get(id)) : null),
       });
@@ -125,6 +129,14 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
         </div>
 
         <Toggle checked={details} onChange={setDetails} label="Détail des montants" sub="Main-d'œuvre, courses, déplacement, camion…" />
+        {photosFiche.length > 0 && (
+          <Toggle
+            checked={avecPhotos}
+            onChange={setAvecPhotos}
+            label="Photos du chantier sur la fiche PDF"
+            sub={`${photosFiche.length} photo${photosFiche.length > 1 ? 's' : ''}, au format choisi pour chacune`}
+          />
+        )}
         {tickets.length > 0 && (
           <Toggle checked={avecTickets} onChange={setAvecTickets} label="Joindre les tickets de caisse" sub={`${choix.size} / ${tickets.length} sélectionné${choix.size > 1 ? 's' : ''}`} />
         )}

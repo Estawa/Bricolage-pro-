@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------
-// Photos des tickets de caisse
+// Photos des tickets de caisse et photos de chantier
 // - compression dans le téléphone avant enregistrement (≈ 150–400 Ko)
 // - mode sans compte : stockage IndexedDB (le localStorage est trop petit)
 // - mode compte : un document Firestore par photo (pas besoin de Firebase Storage)
@@ -114,3 +114,27 @@ export function usePhoto(id) {
 }
 
 export const photoCache = cache;
+
+// ---------- Photos de chantier (dans chaque prestation : e.photosChantier) ----------
+// impression : 'non' (pas sur la fiche) | 'petit' | 'moyen' | 'grand'
+export const IMPRESSION_PHOTO = [
+  { value: 'non', label: 'Non' },
+  { value: 'petit', label: 'Petit' },
+  { value: 'moyen', label: 'Moyen' },
+  { value: 'grand', label: 'Grand' },
+];
+export const IMPRESSION_DEFAUT = 'moyen';
+// Part de la largeur de la page occupée par une photo de chaque taille
+export const LARGEUR_PHOTO = { petit: 0.25, moyen: 0.5, grand: 1 };
+
+// Tous les identifiants de photos d'une prestation (tickets + photos de chantier)
+export const idsPhotos = (e) => [...(e?.tickets || []), ...(e?.photosChantier || [])].map((p) => p.id);
+
+// Photos de chantier d'une liste de prestations, avec la date, dans l'ordre chronologique
+export const photosDeChantier = (list) => list.flatMap((e) => (e.photosChantier || []).map((p) => ({ ...p, date: e.date, entryId: e.id })));
+
+// Taille retenue sur la fiche : choix global (forcé) ou choix de la photo
+export function tailleFiche(p, forcee = 'photo') {
+  if ((p.impression || IMPRESSION_DEFAUT) === 'non') return null;
+  return forcee && forcee !== 'photo' ? forcee : p.impression || IMPRESSION_DEFAUT;
+}

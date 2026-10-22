@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
-import { Home, School, Truck, Sparkles, RefreshCw, ArrowRight, MapPinOff, Camera, Trash2, Loader2 } from 'lucide-react';
+import { Home, School, Truck, Sparkles, RefreshCw, ArrowRight, MapPinOff, Camera, Trash2, Loader2, ImagePlus } from 'lucide-react';
 import { computeEntry, snapshotTarifs, eur, hm, km1, uid, totalTickets } from '../utils/calc';
-import { compressImage, photoCache, usePhotoApi } from '../utils/photos';
+import { compressImage, photoCache, usePhotoApi, IMPRESSION_PHOTO, IMPRESSION_DEFAUT } from '../utils/photos';
 import RecalcModal from './RecalcModal';
 import { TicketThumb, PhotoViewer } from './Tickets';
 import { Modal, Label, NumberField, Segmented, Toggle, Button, inputCls } from './ui';
@@ -33,13 +33,14 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
   const ajoutees = useRef(new Set()); // photos ajoutées pendant cette saisie
   const retirees = useRef(new Set()); // photos existantes retirées (supprimées à l'enregistrement)
   const fileRef = useRef(null);
+  const photoRef = useRef(null);
 
   const [f, setF] = useState(() => {
     if (entry) {
       const existe = chantiers.some((c) => c.id === entry.chantierId);
       return {
         tickets: [],
-      ajustements: [],
+        photosChantier: [],
         ajustements: [],
         sansKm: false,
         minAller: '',
@@ -83,6 +84,7 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
       fournitures: '',
       description: '',
       tickets: [],
+      photosChantier: [],
       tarifs: snapshotTarifs(settings),
     };
   });
@@ -116,8 +118,8 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
   const nomAffiche = chantier ? chantier.nom : f.chantierNom || 'Chantier';
   const valid = (f.chantierSel !== LIBRE || f.chantierNom.trim() !== '') && !!f.date && !busy;
 
-  // ---- Tickets de caisse ----
-  const ajouterPhotos = async (files) => {
+  // ---- Tickets de caisse et photos de chantier ----
+  const ajouterPhotos = async (files, cible = 'tickets') => {
     setBusy(true);
     setErreurPhoto('');
     try {
@@ -127,7 +129,8 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
         await photos.set(id, data);
         photoCache.set(id, data);
         ajoutees.current.add(id);
-        setF((p) => ({ ...p, tickets: [...(p.tickets || []), { id, montant: '', libelle: '' }] }));
+        const item = cible === 'tickets' ? { id, montant: '', libelle: '' } : { id, legende: '', impression: IMPRESSION_DEFAUT };
+        setF((p) => ({ ...p, [cible]: [...(p[cible] || []), item] }));
       }
     } catch (e) {
       setErreurPhoto(`Photo non ajoutée : ${e.message}`);
@@ -144,6 +147,17 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
     } else retirees.current.add(id);
     setF((p) => ({ ...p, tickets: p.tickets.filter((t) => t.id !== id) }));
   };
+
+  const majPhoto = (id, patch) => setF((p) => ({ ...p, photosChantier: p.photosChantier.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+  const retirerPhoto = (id) => {
+    if (!confirm('Retirer cette photo ?')) return;
+    if (ajoutees.current.has(id)) {
+      ajoutees.current.delete(id);
+      photos.del(id);
+    } else retirees.current.add(id);
+    setF((p) => ({ ...p, photosChantier: p.photosChantier.filter((x) => x.id !== id) }));
+  };
+  const toutesImpression = (v) => setF((p) => ({ ...p, photosChantier: p.photosChantier.map((x) => ({ ...x, impression: v })) }));
 
   const annuler = () => {
     ajoutees.current.forEach((id) => photos.del(id)); // photos jamais enregistrées
@@ -409,6 +423,60 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
           )}
         </section>
 
+        {/* Photos de chantier */}
+        <section className="space-y-3 rounded-2xl bg-stone-50 p-3 dark:bg-stone-900/60" data-testid="section-photos-chantier">
+          <div>
+            <h3 className="font-semibold">Photos du chantier</h3>
+            <p className="text-xs text-stone-500">Avant / pendant / après. Pour chaque photo, choisissez si elle apparaît sur la fiche et en quel format.</p>
+          </div>
+          {f.photosChantier.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600 dark:text-stone-300">
+              <span>Toutes :</span>
+              {IMPRESSION_PHOTO.map((o) => (
+                <button key={o.value} type="button" className="rounded-lg bg-stone-200 px-2 py-1 font-semibold dark:bg-stone-800" onClick={() => toutesImpression(o.value)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {f.photosChantier.map((p) => (
+            <div key={p.id} className="flex items-start gap-3" data-testid="photo-chantier">
+              <TicketThumb id={p.id} photo onClick={() => setVue({ ...p, libelle: p.legende, photo: true })} />
+              <div className="min-w-0 flex-1 space-y-2">
+                <input
+                  className={`${inputCls} py-1.5 text-sm`}
+                  placeholder="Légende (ex. salle de bain avant travaux)"
+                  value={p.legende || ''}
+                  onChange={(e) => majPhoto(p.id, { legende: e.target.value })}
+                />
+                <div>
+                  <div className="mb-1 text-xs text-stone-500">Sur la fiche / le PDF</div>
+                  <Segmented small options={IMPRESSION_PHOTO} value={p.impression || IMPRESSION_DEFAUT} onChange={(v) => majPhoto(p.id, { impression: v })} />
+                </div>
+              </div>
+              <button type="button" onClick={() => retirerPhoto(p.id)} className="rounded-lg p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40" aria-label="Retirer la photo">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+          <Button variant="ghost" className="w-full" onClick={() => photoRef.current?.click()} disabled={busy}>
+            {busy ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />} Ajouter une photo du chantier
+          </Button>
+          <input
+            ref={photoRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            data-testid="photo-chantier-input"
+            onChange={(e) => {
+              const files = [...(e.target.files || [])];
+              e.target.value = '';
+              if (files.length) ajouterPhotos(files, 'photosChantier');
+            }}
+          />
+        </section>
+
         {/* Camion */}
         <section className="space-y-2">
           <Toggle
@@ -517,7 +585,7 @@ export default function EntryForm({ date, entry, initialChantierId, chantiers, s
           onClose={() => setRecalc(false)}
         />
       )}
-      {vue && <PhotoViewer id={vue.id} legende={vue.libelle} onClose={() => setVue(null)} />}
+      {vue && <PhotoViewer id={vue.id} legende={vue.libelle} defaut={vue.photo ? 'Photo de chantier' : 'Ticket de caisse'} onClose={() => setVue(null)} />}
     </Modal>
   );
 }

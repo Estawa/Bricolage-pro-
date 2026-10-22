@@ -1,5 +1,14 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.10.0 — 22/10/2026
+- Prestation : nouvelle rubrique « Photos du chantier » (plusieurs photos, légende pour chacune)
+- Chaque photo : « Sur la fiche / le PDF » = Non, Petit, Moyen ou Grand ; bouton « Toutes » pour régler toutes les photos d'un coup
+- Fiche récapitulative et PDF : rubrique « Photos du chantier » après le récapitulatif ; petit = 4 par ligne, moyen = 2, grand = pleine largeur ; aucune photo coupée entre deux pages, titre jamais seul en bas de page
+- Fiche : case pour afficher / masquer les photos, taille imposée à toutes (ou selon chaque photo), « Choisir les photos » photo par photo, puis « Garder ces choix dans les prestations »
+- Partager : « Photos du chantier sur la fiche PDF » (au format choisi pour chacune)
+- Carte de la prestation : nombre de photos et miniatures (photo non imprimée affichée en grisé)
+- Sauvegarde, restauration et suppression d'une prestation prennent en compte les photos de chantier ; la copie d'une prestation ne les duplique pas
+
 v1.9.1 — 22/10/2026
 - Restaurer une sauvegarde : progression affichée, puis confirmation chiffrée ou message d'erreur précis
 

@@ -1,40 +1,40 @@
 import { useState } from 'react';
-import { Receipt, X, Loader2 } from 'lucide-react';
+import { Receipt, Image as ImageIcon, X, Loader2 } from 'lucide-react';
 import { usePhoto } from '../utils/photos';
 
-export function TicketThumb({ id, onClick, className = 'h-16 w-16' }) {
+export function TicketThumb({ id, onClick, className = 'h-16 w-16', photo = false }) {
   const src = usePhoto(id);
   return (
     <button
       type="button"
       onClick={onClick}
       className={`relative shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100 dark:border-stone-700 dark:bg-stone-900 ${className}`}
-      aria-label="Voir le ticket"
+      aria-label={photo ? 'Voir la photo' : 'Voir le ticket'}
     >
       {src ? (
-        <img src={src} alt="Ticket de caisse" className="h-full w-full object-cover" />
+        <img src={src} alt={photo ? 'Photo de chantier' : 'Ticket de caisse'} className="h-full w-full object-cover" />
       ) : (
         <span className="flex h-full w-full items-center justify-center text-stone-400">
-          <Receipt size={18} />
+          {photo ? <ImageIcon size={18} /> : <Receipt size={18} />}
         </span>
       )}
     </button>
   );
 }
 
-export function PhotoViewer({ id, legende, onClose }) {
+export function PhotoViewer({ id, legende, onClose, defaut = 'Ticket de caisse' }) {
   const src = usePhoto(id);
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-black/95" onClick={onClose}>
       <div className="flex items-center justify-between p-3 text-white">
-        <span className="text-sm">{legende || 'Ticket de caisse'}</span>
+        <span className="text-sm">{legende || defaut}</span>
         <button type="button" className="rounded-full p-2 hover:bg-white/10" onClick={onClose} aria-label="Fermer">
           <X size={22} />
         </button>
       </div>
       <div className="flex flex-1 items-center justify-center overflow-auto p-2">
         {src ? (
-          <img src={src} alt="Ticket de caisse" className="max-h-full max-w-full object-contain" onClick={(e) => e.stopPropagation()} />
+          <img src={src} alt={defaut} className="max-h-full max-w-full object-contain" onClick={(e) => e.stopPropagation()} />
         ) : (
           <Loader2 className="animate-spin text-white" />
         )}
@@ -58,6 +58,30 @@ export function TicketStrip({ tickets }) {
         <PhotoViewer
           id={vue.id}
           legende={[vue.libelle, vue.montant && `${vue.montant} €`].filter(Boolean).join(' — ')}
+          onClose={() => setVue(null)}
+        />
+      )}
+    </>
+  );
+}
+
+// Rangée de photos de chantier (lecture seule) avec visionneuse
+const LIB_IMPRESSION = { non: 'pas sur la fiche', petit: 'petit format', moyen: 'format moyen', grand: 'grand format' };
+export function PhotoChantierStrip({ photos }) {
+  const [vue, setVue] = useState(null);
+  if (!photos?.length) return null;
+  return (
+    <>
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+        {photos.map((p) => (
+          <TicketThumb key={p.id} id={p.id} photo onClick={() => setVue(p)} className={`h-14 w-14 ${(p.impression || 'moyen') === 'non' ? 'opacity-50' : ''}`} />
+        ))}
+      </div>
+      {vue && (
+        <PhotoViewer
+          id={vue.id}
+          defaut="Photo de chantier"
+          legende={[vue.legende, `fiche : ${LIB_IMPRESSION[vue.impression || 'moyen']}`].filter(Boolean).join(' — ')}
           onClose={() => setVue(null)}
         />
       )}

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { usePhotoApi } from '../utils/photos';
+import { usePhotoApi, idsPhotos } from '../utils/photos';
 import { Hammer, ShoppingCart, Car, Truck, Sparkles, Home, School, Download, Upload, Trash2, User, Loader2, Scale, Store, Plus, Star } from 'lucide-react';
 import { uid } from '../utils/calc';
 import { DEFAULT_SETTINGS, isoDate } from '../utils/calc';
@@ -23,9 +23,9 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
     try {
       const ph = {};
       for (const e of entries) {
-        for (const t of e.tickets || []) {
-          const d = await photos.get(t.id);
-          if (d) ph[t.id] = d;
+        for (const id of idsPhotos(e)) {
+          const d = await photos.get(id);
+          if (d) ph[id] = d;
         }
       }
       const data = { app: 'bricolage-pro', version: 2, exportLe: new Date().toISOString(), settings, chantiers, entries, photos: ph };
@@ -228,7 +228,7 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
           variant="danger"
           className="w-full"
           onClick={() => {
-            if (confirm('Effacer toutes les prestations, tous les chantiers et toutes les photos de tickets ? (Les tarifs sont conservés.)')) onReset();
+            if (confirm('Effacer toutes les prestations, tous les chantiers et toutes les photos (tickets et chantier) ? (Les tarifs sont conservés.)')) onReset();
           }}
         >
           <Trash2 size={18} /> Tout effacer

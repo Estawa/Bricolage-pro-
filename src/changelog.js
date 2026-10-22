@@ -1,6 +1,17 @@
-export const APP_VERSION = '1.9.1';
+export const APP_VERSION = '1.10.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.10.0',
+    date: '22/10/2026',
+    items: [
+      'Photos du chantier dans chaque prestation (avant / pendant / après), avec une légende',
+      'Pour chaque photo : sur la fiche ou non, en petit, moyen ou grand format (bouton « Toutes » pour régler d’un coup)',
+      'Fiche et PDF : rubrique « Photos du chantier » (petit = 4 par ligne, moyen = 2, grand = pleine largeur), jamais coupée entre deux pages',
+      'Sur la fiche : afficher ou masquer les photos, imposer une taille à toutes, ou choisir photo par photo (« Garder ces choix » pour les enregistrer)',
+      'Photos de chantier comprises dans la sauvegarde et supprimées avec la prestation',
+    ],
+  },
   {
     version: '1.9.1',
     date: '22/10/2026',

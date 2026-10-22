@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Printer, Share2, FileDown, Send, Loader2 } from 'lucide-react';
+import { X, Printer, Share2, FileDown, Send, Loader2, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1 } from '../utils/calc';
 import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses, texteMateriel } from '../utils/recap';
-import { usePhoto, usePhotoApi, photoCache } from '../utils/photos';
+import { usePhoto, usePhotoApi, photoCache, photosDeChantier, tailleFiche, IMPRESSION_PHOTO, IMPRESSION_DEFAUT, LARGEUR_PHOTO } from '../utils/photos';
+import { Segmented } from './ui';
+import { TicketThumb, PhotoViewer } from './Tickets';
 import { genererPdfFiche, envoyerPdf, telechargerPdf } from '../utils/pdfFiche';
 import { trajetManquant, completerTrajet } from '../utils/trajet';
 import { totauxAjustements } from '../utils/ajustements';
@@ -49,6 +51,31 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
   const co = settings.coordonnees || {};
   const tickets = list.flatMap((e) => (e.tickets || []).map((t) => ({ ...t, date: e.date })));
 
+  // ---- Photos du chantier ----
+  const [avecPhotos, setAvecPhotos] = useState(true);
+  const [taillePhotos, setTaillePhotos] = useState('photo'); // 'photo' = selon chaque photo, sinon taille imposée à toutes
+  const [choixPhotos, setChoixPhotos] = useState({}); // id -> impression modifiée ici (pas encore enregistrée)
+  const [panneauPhotos, setPanneauPhotos] = useState(false);
+  const [vuePhoto, setVuePhoto] = useState(null);
+  const toutesPhotos = useMemo(
+    () => photosDeChantier(list).map((p) => (choixPhotos[p.id] ? { ...p, impression: choixPhotos[p.id] } : p)),
+    [list, choixPhotos]
+  );
+  const photosFiche = avecPhotos
+    ? toutesPhotos.filter((p) => tailleFiche(p, taillePhotos)).map((p) => ({ ...p, taille: tailleFiche(p, taillePhotos) }))
+    : [];
+  const choixPhotosModifies = Object.keys(choixPhotos).length > 0;
+  const enregistrerChoixPhotos = () => {
+    onSaveChoix(
+      original.map((e) =>
+        (e.photosChantier || []).some((p) => choixPhotos[p.id])
+          ? { ...e, photosChantier: e.photosChantier.map((p) => (choixPhotos[p.id] ? { ...p, impression: choixPhotos[p.id] } : p)) }
+          : e
+      )
+    );
+    setChoixPhotos({});
+  };
+
   const photos = usePhotoApi();
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfInfo, setPdfInfo] = useState('');
@@ -63,6 +90,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
         chantier,
         detail,
         annexe,
+        photosChantier: photosFiche,
         getPhoto: async (id) => photoCache.get(id) || (photos ? await photos.get(id) : null),
       });
       if (mode === 'telecharger') {
@@ -152,6 +180,59 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
             </label>
           )}
         </div>
+        {toutesPhotos.length > 0 && (
+          <div className="mx-auto mt-2 max-w-3xl rounded-xl bg-stone-100 px-3 py-2 text-sm text-stone-700" data-testid="fiche-photos-options">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" className="h-4 w-4 accent-orange-600" checked={avecPhotos} onChange={(e) => setAvecPhotos(e.target.checked)} data-testid="fiche-avec-photos" />
+                <ImageIcon size={15} /> Photos du chantier ({photosFiche.length}/{toutesPhotos.length})
+              </label>
+              {avecPhotos && (
+                <label className="flex items-center gap-2">
+                  Taille
+                  <select className="rounded-lg border border-stone-300 px-2 py-1 text-sm" value={taillePhotos} onChange={(e) => setTaillePhotos(e.target.value)} data-testid="fiche-taille-photos">
+                    <option value="photo">selon chaque photo</option>
+                    <option value="petit">toutes en petit</option>
+                    <option value="moyen">toutes en moyen</option>
+                    <option value="grand">toutes en grand</option>
+                  </select>
+                </label>
+              )}
+              {avecPhotos && (
+                <button type="button" className="flex items-center gap-1 font-semibold text-orange-700" onClick={() => setPanneauPhotos((v) => !v)} data-testid="fiche-choisir-photos">
+                  Choisir les photos {panneauPhotos ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </button>
+              )}
+            </div>
+            {avecPhotos && panneauPhotos && (
+              <div className="mt-2 space-y-2">
+                {toutesPhotos.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 rounded-lg bg-white p-2" data-testid="fiche-photo-choix">
+                    <TicketThumb id={p.id} photo className="h-12 w-12" onClick={() => setVuePhoto(p)} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs text-stone-600">
+                        {frDate(p.date)}
+                        {p.legende ? ` — ${p.legende}` : ''}
+                      </div>
+                      <Segmented
+                        small
+                        options={IMPRESSION_PHOTO}
+                        value={p.impression || IMPRESSION_DEFAUT}
+                        onChange={(v) => setChoixPhotos((c) => ({ ...c, [p.id]: v }))}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {taillePhotos !== 'photo' && <p className="text-xs text-stone-500">La taille choisie au-dessus s’applique à toutes les photos cochées (sauf « Non »).</p>}
+                {choixPhotosModifies && onSaveChoix && (
+                  <button type="button" className="rounded-lg bg-orange-600 px-3 py-1 text-xs font-semibold text-white" onClick={enregistrerChoixPhotos} data-testid="fiche-enregistrer-photos">
+                    Garder ces choix dans les prestations
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {(sansTrajet || aCompleter.length > 0) && (
           <div className="mx-auto mt-2 max-w-3xl rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="fiche-alerte-trajet">
             {aCompleter.length > 0 ? (
@@ -359,6 +440,19 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
           Document récapitulatif du coût des prestations réalisées — ne constitue pas une facture.
         </p>
 
+        {photosFiche.length > 0 && (
+          <section className="mt-8" data-testid="fiche-section-photos">
+            <h2 className="no-break mb-3 text-sm font-bold uppercase" style={{ breakAfter: 'avoid' }}>
+              Photos du chantier
+            </h2>
+            <div className="flex flex-wrap items-start" style={{ gap: '12px' }}>
+              {photosFiche.map((p) => (
+                <PhotoFiche key={p.id} p={p} />
+              ))}
+            </div>
+          </section>
+        )}
+
         {annexe && tickets.length > 0 && (
           <section className="mt-8" style={{ breakBefore: 'page' }}>
             <h2 className="mb-3 text-sm font-bold uppercase">Annexe — tickets de caisse</h2>
@@ -370,8 +464,30 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
           </section>
         )}
       </div>
+      {vuePhoto && <PhotoViewer id={vuePhoto.id} legende={vuePhoto.legende} defaut="Photo de chantier" onClose={() => setVuePhoto(null)} />}
     </div>,
     document.body
+  );
+}
+
+const HAUTEUR_MAX = { petit: '38mm', moyen: '80mm', grand: '170mm' };
+function PhotoFiche({ p }) {
+  const src = usePhoto(p.id);
+  const part = LARGEUR_PHOTO[p.taille] || 0.5;
+  // largeur = part de la ligne, moins sa part des espaces de 12 px
+  const width = part === 1 ? '100%' : `calc(${part * 100}% - ${12 * (1 - part)}px)`;
+  return (
+    <figure className="no-break border border-stone-400 p-1.5" style={{ width }} data-testid={`fiche-photo-${p.taille}`}>
+      {src ? (
+        <img src={src} alt={p.legende || 'Photo de chantier'} className="mx-auto block w-auto max-w-full object-contain" style={{ maxHeight: HAUTEUR_MAX[p.taille] }} />
+      ) : (
+        <div className="bg-stone-100" style={{ height: HAUTEUR_MAX[p.taille] }} />
+      )}
+      <figcaption className="mt-1 text-[10px] leading-tight">
+        {frDate(p.date)}
+        {p.legende ? ` — ${p.legende}` : ''}
+      </figcaption>
+    </figure>
   );
 }
 

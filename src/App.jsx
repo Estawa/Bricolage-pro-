@@ -17,7 +17,7 @@ import Share from './components/Share';
 import Fiche from './components/Fiche';
 import BulkTarifs from './components/BulkTarifs';
 import { trajetManquant, completerTrajet } from './utils/trajet';
-import { PhotoContext, localPhotos } from './utils/photos';
+import { PhotoContext, localPhotos, idsPhotos } from './utils/photos';
 import { LoginScreen, SyncBadge } from './components/Account';
 import { Modal, Button, inputCls, Label } from './components/ui';
 import { APP_VERSION, CHANGELOG } from './changelog';
@@ -75,7 +75,7 @@ export default function App() {
 
   const supprimerPrestation = (e) => {
     store.deleteEntry(e.id);
-    (e.tickets || []).forEach((t) => store.photos.del(t.id));
+    idsPhotos(e).forEach((id) => store.photos.del(id));
   };
 
   const selectDay = (d) => {
@@ -119,9 +119,9 @@ export default function App() {
     try {
       const photos = {};
       for (const e of local.entries) {
-        for (const t of e.tickets || []) {
-          const d = await localPhotos.get(t.id);
-          if (d) photos[t.id] = d;
+        for (const id of idsPhotos(e)) {
+          const d = await localPhotos.get(id);
+          if (d) photos[id] = d;
         }
       }
       await cloud.importAll({ settings: local.settings, chantiers: local.chantiers, entries: local.entries, photos });
@@ -337,7 +337,7 @@ export default function App() {
           entry={dup}
           onClose={() => setDup(null)}
           onConfirm={(date) => {
-            store.saveEntry({ ...dup, id: uid(), date, tickets: [] }); // les photos de tickets ne sont pas dupliquées
+            store.saveEntry({ ...dup, id: uid(), date, tickets: [], photosChantier: [] }); // les photos ne sont pas dupliquées
             setDup(null);
             selectDay(date);
           }}
@@ -402,7 +402,7 @@ function DuplicateModal({ entry, onClose, onConfirm }) {
       }
     >
       <p className="mb-3 text-sm text-stone-500">
-        « {entry.chantierNom} » du {longDate(entry.date)} — copiée à l’identique (trajets, temps, camion…) sur le jour choisi, sans les photos de tickets.
+        « {entry.chantierNom} » du {longDate(entry.date)} — copiée à l’identique (trajets, temps, camion…) sur le jour choisi, sans les photos (tickets et chantier).
       </p>
       <label className="block">
         <Label>Nouveau jour</Label>
