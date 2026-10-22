@@ -1,5 +1,8 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.9.1 — 22/10/2026
+- Restaurer une sauvegarde : progression affichée, puis confirmation chiffrée ou message d'erreur précis
+
 v1.9.0 — 22/10/2026
 - Déménagement vers le projet Firebase « Applis perso » (identifiant doucheco), partagé avec Courses Pro et Douch'Eco
 - À faire une fois : créer le compte avec le même e-mail et mot de passe, puis Réglages → Restaurer une sauvegarde

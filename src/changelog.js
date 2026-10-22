@@ -1,6 +1,13 @@
-export const APP_VERSION = '1.9.0';
+export const APP_VERSION = '1.9.1';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.1',
+    date: '22/10/2026',
+    items: [
+      "Restaurer une sauvegarde : message de progression, puis confirmation (nombre de prestations, chantiers, photos) ou erreur précise",
+    ],
+  },
   {
     version: '1.9.0',
     date: '22/10/2026',

@@ -11,6 +11,7 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
   const fileRef = useRef(null);
   const photos = usePhotoApi();
   const [exporting, setExporting] = useState(false);
+  const [etatImport, setEtatImport] = useState('');
   const setCoord = (patch) => setSettings((s) => ({ ...s, coordonnees: { ...s.coordonnees, ...patch } }));
   // valeur gardée telle que tapée (évite de perdre la virgule pendant la saisie)
   const set = (k) => (v) => setSettings((s) => ({ ...s, [k]: v }));
@@ -35,14 +36,23 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
   };
 
   const importJson = async (file) => {
+    setEtatImport('Lecture du fichier…');
+    let data;
     try {
-      const data = JSON.parse(await file.text());
+      data = JSON.parse(await file.text());
       if (data.app !== 'bricolage-pro') throw new Error();
-      if (confirm(`Remplacer les données actuelles par la sauvegarde (${data.entries?.length || 0} prestations, ${data.chantiers?.length || 0} chantiers) ?`)) {
-        onImport(data);
-      }
     } catch {
-      alert('Ce fichier n’est pas une sauvegarde Bricolage Pro valide.');
+      setEtatImport('❌ Ce fichier n’est pas une sauvegarde Bricolage Pro valide.');
+      return;
+    }
+    const nbPhotos = Object.keys(data.photos || {}).length;
+    if (!confirm(`Remplacer les données actuelles par la sauvegarde (${data.entries?.length || 0} prestations, ${data.chantiers?.length || 0} chantiers, ${nbPhotos} photos) ?`)) { setEtatImport(''); return; }
+    setEtatImport(`⏳ Restauration en cours (${data.entries?.length || 0} prestations, ${data.chantiers?.length || 0} chantiers, ${nbPhotos} photos)… Ne ferme pas l’appli, les photos peuvent prendre une minute.`);
+    try {
+      await onImport(data);
+      setEtatImport(`✅ Restauration terminée : ${data.entries?.length || 0} prestations, ${data.chantiers?.length || 0} chantiers, ${nbPhotos} photos.`);
+    } catch (e) {
+      setEtatImport('❌ Restauration impossible : ' + (e?.code || e?.message || 'erreur inconnue') + '. Envoie ce message à Claude.');
     }
   };
 
@@ -203,6 +213,7 @@ export default function Settings({ settings, setSettings, chantiers, entries, on
         <Button variant="ghost" className="w-full" onClick={() => fileRef.current?.click()}>
           <Upload size={18} /> Restaurer une sauvegarde
         </Button>
+        {etatImport && <p className="text-sm font-medium text-stone-700 dark:text-stone-200">{etatImport}</p>}
         <input
           ref={fileRef}
           type="file"
