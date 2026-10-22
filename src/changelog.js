@@ -1,6 +1,14 @@
-export const APP_VERSION = '1.8.1';
+export const APP_VERSION = '1.9.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.9.0',
+    date: '22/10/2026',
+    items: [
+      "Déménagement vers le projet Firebase « Applis perso » (avec Courses Pro et Douch'Eco)",
+      "À faire une fois : créer ton compte avec le même e-mail et mot de passe, puis Réglages → Restaurer une sauvegarde",
+    ],
+  },
   {
     version: '1.8.1',
     date: '09/10/2026',

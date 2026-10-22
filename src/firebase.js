@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------
-// Configuration Firebase — projet « escalade-pro » (renommé Bricolage Pro)
+// Configuration Firebase — projet « Applis perso » (identifiant doucheco),
+// partagé avec Courses Pro et Douch'Eco (déménagé de « escalade-pro » en oct. 2026)
 // (Console Firebase > Paramètres du projet > Vos applications > Web)
 // Tant que la config n'est pas remplie, l'appli fonctionne en mode
 // « téléphone seul » (données stockées localement).
@@ -9,12 +10,12 @@ import { getAuth } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 export const firebaseConfig = {
-  apiKey: 'AIzaSyAUl5Z4YM5fVj_gPX9DuLWQX_oQS-u28R4',
-  authDomain: 'escalade-pro.firebaseapp.com',
-  projectId: 'escalade-pro',
-  storageBucket: 'escalade-pro.firebasestorage.app',
-  messagingSenderId: '421679387453',
-  appId: '1:421679387453:web:0d6898439cd6c81eb66b54',
+  apiKey: 'AIzaSyDhCmEw5c0hDEJZYox73mfW0BOdRicOSTk',
+  authDomain: 'doucheco.firebaseapp.com',
+  projectId: 'doucheco',
+  storageBucket: 'doucheco.firebasestorage.app',
+  messagingSenderId: '961453430586',
+  appId: '1:961453430586:web:d77427df31291b8d11a203',
 };
 
 // Collection racine des données de Bricolage Pro dans Firestore.

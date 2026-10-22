@@ -1,5 +1,9 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.9.0 — 22/10/2026
+- Déménagement vers le projet Firebase « Applis perso » (identifiant doucheco), partagé avec Courses Pro et Douch'Eco
+- À faire une fois : créer le compte avec le même e-mail et mot de passe, puis Réglages → Restaurer une sauvegarde
+
 v1.8.1 — 09/10/2026
 - Magasins favoris (étoile dans les Réglages) affichés en raccourcis dans les prestations : un appui = passage ajouté + km calculés
 - Mémorisation du dernier trajet utilisé pour chaque magasin (depuis, vers, sur le trajet) ; magasins les plus utilisés en raccourci
