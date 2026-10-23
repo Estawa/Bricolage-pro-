@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Share2, Copy, Mail, MessageCircle, FileText, Check, Loader2 } from 'lucide-react';
 import { sumEntries, eur, shortDate } from '../utils/calc';
-import { buildRecapText, sortByDate } from '../utils/recap';
+import { buildRecapText, sortByDate, VOIR_OFFERT } from '../utils/recap';
+import { useVoirOffert } from '../utils/voirOffert';
 import { dataUrlToFile, photoCache, usePhotoApi, photosDeChantier, tailleFiche } from '../utils/photos';
-import { Modal, Button, Toggle } from './ui';
+import { Modal, Button, Toggle, Segmented } from './ui';
 import { TicketThumb } from './Tickets';
 import { genererPdfFiche, envoyerPdf } from '../utils/pdfFiche';
 
@@ -13,6 +14,7 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
   const list = useMemo(() => sortByDate(entries), [entries]);
   const tickets = useMemo(() => list.flatMap((e) => (e.tickets || []).map((t) => ({ ...t, date: e.date }))), [list]);
   const [details, setDetails] = useState(true);
+  const [voirOffert, setVoirOffert] = useVoirOffert();
   const [avecTickets, setAvecTickets] = useState(tickets.length > 0);
   const [choix, setChoix] = useState(() => new Set(tickets.map((t) => t.id)));
   const photosFiche = useMemo(() => photosDeChantier(list).filter((p) => tailleFiche(p)).map((p) => ({ ...p, taille: tailleFiche(p) })), [list]);
@@ -21,7 +23,7 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
   const [info, setInfo] = useState('');
 
   const ticketsChoisis = avecTickets ? tickets.filter((t) => choix.has(t.id)) : [];
-  const texte = buildRecapText(list, settings, { details, chantier, nbTickets: ticketsChoisis.length });
+  const texte = buildRecapText(list, settings, { details, chantier, nbTickets: ticketsChoisis.length, voirOffert });
   const s = sumEntries(list);
   const titre = chantier ? `Récapitulatif — ${chantier.nom}` : 'Récapitulatif des prestations';
 
@@ -78,6 +80,7 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
         settings,
         chantier,
         detail: details,
+        voirOffert,
         annexe: avecTickets && ticketsChoisis.length > 0,
         photosChantier: avecPhotos ? photosFiche : [],
         getPhotoChantier: async (id) => photoCache.get(id) || (await photos.get(id)),
@@ -129,6 +132,15 @@ export default function Share({ entries, settings, chantier, onClose, onFiche })
         </div>
 
         <Toggle checked={details} onChange={setDetails} label="Détail des montants" sub="Main-d'œuvre, courses, déplacement, camion…" />
+        {s.offert > 0 && (
+          <div data-testid="share-voir-offert">
+            <div className="mb-1 text-sm font-semibold">🎁 Trajet / km offerts ({eur(s.offert)})</div>
+            <Segmented small options={VOIR_OFFERT} value={voirOffert} onChange={setVoirOffert} />
+            <p className="mt-1 text-xs text-stone-500">
+              {voirOffert === 'valeur' ? 'Le client voit ce que vous lui offrez.' : voirOffert === 'mention' ? 'Le client voit « offert », sans le montant.' : 'Rien n’apparaît sur le trajet / les km offerts.'}
+            </p>
+          </div>
+        )}
         {photosFiche.length > 0 && (
           <Toggle
             checked={avecPhotos}

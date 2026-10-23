@@ -35,15 +35,64 @@ export function texteMateriel(e) {
   return `dont ${km1(km)} matériel${noms ? ` (${noms})` : ''}`;
 }
 
-export function resumeLigne(e) {
+// Affichage des trajets / km offerts sur les documents remis au client :
+//  'valeur'  = « offert, valeur 12,00 € » (montant du cadeau visible)
+//  'mention' = « offert » seulement, sans montant
+//  'masquer' = rien n'apparaît (ni ligne, ni geste commercial)
+export const VOIR_OFFERT = [
+  { value: 'valeur', label: 'Avec montant' },
+  { value: 'mention', label: '« Offert » seul' },
+  { value: 'masquer', label: 'Masqués' },
+];
+
+// « 28 km dont 8 km matériel (offerts, valeur 7,00 €) » — null si rien à afficher
+export function texteKm(e, c, voir = 'valeur') {
+  if (e.sansKm) return null;
+  const offerts = e.kmOffert && c.km;
+  if (offerts && voir === 'masquer') return null;
+  const mat = texteMateriel(e);
+  const suite = offerts ? (voir === 'mention' ? ' (offerts)' : ` (offerts, valeur ${eur(c.deplacementOffert)})`) : '';
+  return `${km1(c.km)}${mat ? ` ${mat}` : ''}${suite}`;
+}
+
+// « Trajet 40 min (offert, valeur 10,00 €) » — null si rien à afficher
+export function texteTrajet(e, c, voir = 'valeur', { facture = '' } = {}) {
+  if (!c.hTrajet) return null;
+  const offert = e.trajetMode === 'offert';
+  if (offert && voir === 'masquer') return null;
+  const suite = offert ? (voir === 'mention' ? ' (offert)' : ` (offert, valeur ${eur(c.trajetOffert)})`) : facture;
+  return `Trajet ${hm(c.hTrajet)}${suite}`;
+}
+
+// « Geste commercial : temps de trajet et kilomètres offerts » (+ montant selon le choix)
+export function gesteCommercial(s, voir = 'valeur') {
+  if (!(s.offert > 0) || voir === 'masquer') return null;
+  const quoi = [s.trajetOffert > 0 ? 'temps de trajet' : null, s.deplacementOffert > 0 ? 'kilomètres' : null].filter(Boolean).join(' et ');
+  return { texte: `Geste commercial : ${quoi} offerts`, montant: voir === 'valeur' ? s.offert : null };
+}
+
+// Totaux « visibles » pour la ligne de bas de fiche (sans les trajets / km offerts si masqués)
+export function totauxVisibles(entries, voir = 'valeur') {
+  let hTrajet = 0;
+  let km = 0;
+  for (const e of entries) {
+    const c = computeEntry(e);
+    if (voir !== 'masquer' || e.trajetMode !== 'offert') hTrajet += c.hTrajet;
+    if (voir !== 'masquer' || !e.kmOffert) km += c.km;
+  }
+  return { hTrajet, km };
+}
+
+export function resumeLigne(e, voir = 'valeur') {
   const c = computeEntry(e);
   const parts = [];
   const hT = horairesTravail(e);
   const hC = horairesCourses(e);
   if (c.hT) parts.push(`Main-d'œuvre ${hm(c.hT)}${hT ? ` (${hT})` : ''}`);
   if (c.hC) parts.push(`Courses ${hm(c.hC)}${hC ? ` (${hC})` : ''}`);
-  parts.push(e.sansKm ? 'Sans km' : `${km1(c.km)}${texteMateriel(e) ? ` ${texteMateriel(e)}` : ''}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`);
-  if (c.hTrajet) parts.push(`Trajet ${hm(c.hTrajet)}${e.trajetMode === 'offert' ? ` (offert, valeur ${eur(c.trajetOffert)})` : ''}`);
+  if (e.sansKm) parts.push('Sans km');
+  else if (texteKm(e, c, voir)) parts.push(texteKm(e, c, voir));
+  if (texteTrajet(e, c, voir)) parts.push(texteTrajet(e, c, voir));
   if (e.camion) parts.push('Camion');
   if (e.nettoyage) parts.push('Nettoyage camion');
   if (c.fournitures) parts.push(`Fournitures ${eur(c.fournitures)}`);
@@ -89,7 +138,7 @@ export function lignesAjustements(entries, extra = []) {
   return out;
 }
 
-export function postes(entries, extra = []) {
+export function postes(entries, extra = [], voir = 'valeur') {
   const s = sumEntries(entries);
   const unique = (k) => {
     const set = new Set(entries.map((e) => n(e.tarifs?.[k])));
@@ -117,9 +166,9 @@ export function postes(entries, extra = []) {
     { libelle: "Main-d'œuvre", qte: hm(s.hT), pu: tT != null ? `${eur(tT)} / h` : '', montant: s.travail },
     { libelle: 'Temps de courses', qte: hm(s.hC), pu: tC != null ? `${eur(tC)} / h` : '', montant: s.courses },
     { libelle: 'Temps de trajet', qte: hm(hTrFacture), pu: tTr != null ? `${eur(tTr)} / h` : '', montant: s.trajet },
-    { libelle: 'Temps de trajet offert', qte: hm(hTrOffert), pu: 'offert', montant: 0, valeur: s.trajetOffert, garder: hTrOffert > 0 },
+    { libelle: 'Temps de trajet offert', qte: hm(hTrOffert), pu: 'offert', montant: 0, valeur: voir === 'valeur' ? s.trajetOffert : null, garder: hTrOffert > 0 && voir !== 'masquer' },
     { libelle: 'Déplacements', qte: km1(kmFacture), pu: tK != null ? `${eur(tK)} / km` : '', montant: s.deplacement },
-    { libelle: 'Déplacements offerts', qte: km1(kmOffert), pu: 'offert', montant: 0, valeur: s.deplacementOffert, garder: s.deplacementOffert > 0 },
+    { libelle: 'Déplacements offerts', qte: km1(kmOffert), pu: 'offert', montant: 0, valeur: voir === 'valeur' ? s.deplacementOffert : null, garder: s.deplacementOffert > 0 && voir !== 'masquer' },
     { libelle: 'Utilisation du camion', qte: nbCamion ? `${nbCamion} fois` : '', pu: '', montant: s.camion },
     { libelle: 'Nettoyage du camion', qte: nbNett ? `${nbNett} fois` : '', pu: '', montant: s.nettoyage },
     { libelle: 'Fournitures', qte: '', pu: '', montant: s.fournitures },
@@ -127,7 +176,7 @@ export function postes(entries, extra = []) {
   ].filter((p) => p.montant > 0 || p.garder);
 }
 
-export function buildRecapText(entries, settings, { details = true, chantier = null, nbTickets = 0, extra = [] } = {}) {
+export function buildRecapText(entries, settings, { details = true, chantier = null, nbTickets = 0, extra = [], voirOffert = 'valeur' } = {}) {
   const list = sortByDate(entries);
   const noms = [...new Set(list.map((e) => e.chantierNom || 'Chantier'))];
   const unSeul = noms.length === 1;
@@ -144,7 +193,7 @@ export function buildRecapText(entries, settings, { details = true, chantier = n
     const c = computeEntry(e);
     lignes.push(`📅 ${shortDate(e.date)}${unSeul ? '' : ` — ${e.chantierNom}`}`);
     if (e.description) lignes.push(e.description.trim());
-    lignes.push(resumeLigne(e));
+    lignes.push(resumeLigne(e, voirOffert));
     if (details) {
       const d = detailMontants(e)
         .map(([l, v]) => `${l} ${eur(v)}`)
@@ -172,11 +221,14 @@ export function buildRecapText(entries, settings, { details = true, chantier = n
   }
   lignes.push('━━━━━━━━━━━━');
   if (details) {
-    for (const p of postes(list)) lignes.push(`${p.libelle} : ${eur(p.montant)}`);
+    for (const p of postes(list, [], voirOffert)) lignes.push(`${p.libelle} : ${eur(p.montant)}`);
   }
   lignes.push(`COÛT TOTAL : ${eur(s.total + tx)}`);
-  if (s.trajetOffert > 0) lignes.push(`🎁 Temps de trajet offert : ${eur(s.trajetOffert)} (non compté)`);
-  if (s.deplacementOffert > 0) lignes.push(`🎁 Kilomètres offerts : ${eur(s.deplacementOffert)} (non comptés)`);
+  if (voirOffert !== 'masquer') {
+    const val = (v) => (voirOffert === 'valeur' ? ` : ${eur(v)}` : '');
+    if (s.trajetOffert > 0) lignes.push(`🎁 Temps de trajet offert${val(s.trajetOffert)} (non compté)`);
+    if (s.deplacementOffert > 0) lignes.push(`🎁 Kilomètres offerts${val(s.deplacementOffert)} (non comptés)`);
+  }
   if (nbTickets) lignes.push(`🧾 ${nbTickets} photo${nbTickets > 1 ? 's' : ''} de ticket${nbTickets > 1 ? 's' : ''} jointe${nbTickets > 1 ? 's' : ''}`);
   const nom = settings?.coordonnees?.nom;
   if (nom) {

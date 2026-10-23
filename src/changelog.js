@@ -1,6 +1,15 @@
-export const APP_VERSION = '1.10.0';
+export const APP_VERSION = '1.11.0';
 
 export const CHANGELOG = [
+  {
+    version: '1.11.0',
+    date: '23/10/2026',
+    items: [
+      'Trajet / km offerts : choix de ce que voit le client sur la fiche, le PDF et le message partagé',
+      '« Avec montant » (valeur du cadeau affichée), « « Offert » seul » (sans montant) ou « Masqués » (aucune mention)',
+      'Choix mémorisé sur l’appareil ; il ne change jamais le coût total',
+    ],
+  },
   {
     version: '1.10.0',
     date: '22/10/2026',

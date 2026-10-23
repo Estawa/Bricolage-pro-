@@ -4,7 +4,7 @@
 // ---------------------------------------------------------------
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { computeEntry, sumEntries, eur, hm, km1, isoDate } from './calc';
-import { sortByDate, periode, frDate, postes, detailMontants, horairesTravail, horairesCourses, texteMateriel } from './recap';
+import { sortByDate, periode, frDate, postes, detailMontants, horairesTravail, horairesCourses, texteKm, texteTrajet, gesteCommercial, totauxVisibles } from './recap';
 import { totauxAjustements } from './ajustements';
 import { LARGEUR_PHOTO } from './photos';
 
@@ -26,7 +26,7 @@ function propre(t) {
 }
 
 // photosChantier : [{ id, date, legende, taille: 'petit' | 'moyen' | 'grand' }] déjà filtrées (seules celles à imprimer)
-export async function genererPdfFiche({ entries, extra = [], settings, chantier, detail = true, annexe = true, photosChantier = [], getPhoto, getPhotoChantier }) {
+export async function genererPdfFiche({ entries, extra = [], settings, chantier, detail = true, annexe = true, voirOffert = 'valeur', photosChantier = [], getPhoto, getPhotoChantier }) {
   const list = sortByDate(entries);
   const s = sumEntries(list);
   const tx = totauxAjustements(extra);
@@ -136,8 +136,8 @@ export async function genererPdfFiche({ entries, extra = [], settings, chantier,
     const infos = [
       c.hT ? `Main-d'œuvre ${hm(c.hT)}${horairesTravail(e) ? ` (${horairesTravail(e)})` : ''}` : null,
       c.hC ? `Courses ${hm(c.hC)}${horairesCourses(e) ? ` (${horairesCourses(e)})` : ''}` : null,
-      e.sansKm ? null : `${km1(c.km)}${texteMateriel(e) ? ` ${texteMateriel(e)}` : ''}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`,
-      c.hTrajet ? `Trajet ${hm(c.hTrajet)} ${e.trajetMode === 'offert' ? `(offert, valeur ${eur(c.trajetOffert)})` : '(facturé)'}` : null,
+      texteKm(e, c, voirOffert),
+      texteTrajet(e, c, voirOffert, { facture: ' (facturé)' }),
       e.camion ? 'Camion' : null,
       e.nettoyage ? 'Nettoyage camion' : null,
     ]
@@ -170,9 +170,11 @@ export async function genererPdfFiche({ entries, extra = [], settings, chantier,
   }
 
   // ---------- Récapitulatif (bloc jamais coupé) ----------
-  const lignes = postes(list, extra);
+  const lignes = postes(list, extra, voirOffert);
+  const geste = gesteCommercial(s, voirOffert);
+  const vis = totauxVisibles(list, voirOffert);
   const x0 = W - M - 330;
-  const hRecap = 22 + lignes.length * 15 + 26 + (s.offert > 0 ? 13 : 0) + 14;
+  const hRecap = 22 + lignes.length * 15 + 26 + (geste ? 13 : 0) + 14;
   y -= 6;
   place(hRecap);
   texte('RÉCAPITULATIF', x0, 10, F.b);
@@ -185,11 +187,13 @@ export async function genererPdfFiche({ entries, extra = [], settings, chantier,
     if (p.pu === 'offert') {
       texte('offert', x0 + 268, 8, F.r, { droite: true });
       const zero = eur(0);
-      const val = eur(p.valeur);
       texte(zero, W - M, 8.5, F.r, { droite: true });
-      const xv = W - M - larg(zero, 8.5) - 6 - larg(val, 8.5);
-      texte(val, xv, 8.5);
-      ligne(xv, xv + larg(val, 8.5), y + 3, 0.6); // montant barré
+      if (p.valeur != null) {
+        const val = eur(p.valeur);
+        const xv = W - M - larg(zero, 8.5) - 6 - larg(val, 8.5);
+        texte(val, xv, 8.5);
+        ligne(xv, xv + larg(val, 8.5), y + 3, 0.6); // montant barré
+      }
     } else if (p.ajust) {
       texte(`${p.montant < 0 ? '-' : '+'} ${eur(Math.abs(p.montant))}`, W - M, 8.5, F.r, { droite: true });
     } else {
@@ -207,14 +211,13 @@ export async function genererPdfFiche({ entries, extra = [], settings, chantier,
   y -= 7;
   ligne(x0, W - M, y, 1.4);
   y -= 12;
-  if (s.offert > 0) {
-    const quoi = [s.trajetOffert > 0 ? 'temps de trajet' : null, s.deplacementOffert > 0 ? 'kilomètres' : null].filter(Boolean).join(' et ');
-    texte(`Geste commercial : ${quoi} offerts`, x0, 8, F.i);
-    texte(eur(s.offert), W - M, 8, F.i, { droite: true });
+  if (geste) {
+    texte(geste.texte, x0, 8, F.i);
+    if (geste.montant != null) texte(eur(geste.montant), W - M, 8, F.i, { droite: true });
     y -= 13;
   }
   texte(
-    `${s.nb} intervention${s.nb > 1 ? 's' : ''} · ${hm(s.hT)} de main-d'œuvre · ${hm(s.hC)} de courses${s.hTrajet ? ` · ${hm(s.hTrajet)} de trajet` : ''} · ${km1(s.km)}`,
+    `${s.nb} intervention${s.nb > 1 ? 's' : ''} · ${hm(s.hT)} de main-d'œuvre · ${hm(s.hC)} de courses${vis.hTrajet ? ` · ${hm(vis.hTrajet)} de trajet` : ''}${vis.km ? ` · ${km1(vis.km)}` : ''}`,
     x0,
     7
   );

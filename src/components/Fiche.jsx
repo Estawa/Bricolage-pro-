@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Printer, Share2, FileDown, Send, Loader2, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { computeEntry, sumEntries, eur, hm, km1 } from '../utils/calc';
-import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses, texteMateriel } from '../utils/recap';
+import { sortByDate, periode, frDate, postes, detailMontants, buildRecapText, horairesTravail, horairesCourses, texteKm, texteTrajet, gesteCommercial, totauxVisibles, VOIR_OFFERT } from '../utils/recap';
+import { useVoirOffert } from '../utils/voirOffert';
 import { usePhoto, usePhotoApi, photoCache, photosDeChantier, tailleFiche, IMPRESSION_PHOTO, IMPRESSION_DEFAUT, LARGEUR_PHOTO } from '../utils/photos';
 import { Segmented } from './ui';
 import { TicketThumb, PhotoViewer } from './Tickets';
@@ -20,6 +21,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
   // Choix appliqués à la fiche : 'prestation' (comme saisi), 'tarif' (tout facturé), 'offert' (tout offert)
   const [optTrajet, setOptTrajet] = useState('prestation');
   const [optKm, setOptKm] = useState('prestation');
+  const [voirOffert, setVoirOffert] = useVoirOffert();
   const original = useMemo(() => sortByDate(entries), [entries]);
   const list = useMemo(
     () =>
@@ -46,6 +48,8 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
   }, []);
 
   const s = sumEntries(list);
+  const geste = gesteCommercial(s, voirOffert);
+  const vis = totauxVisibles(list, voirOffert);
   const noms = [...new Set(list.map((e) => e.chantierNom))];
   const nomChantier = chantier?.nom || (noms.length === 1 ? noms[0] : 'Plusieurs chantiers');
   const co = settings.coordonnees || {};
@@ -90,6 +94,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
         chantier,
         detail,
         annexe,
+        voirOffert,
         photosChantier: photosFiche,
         getPhoto: async (id) => photoCache.get(id) || (photos ? await photos.get(id) : null),
       });
@@ -109,7 +114,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
   };
 
   const partagerTexte = async () => {
-    const texte = buildRecapText(list, settings, { details: detail, chantier, extra });
+    const texte = buildRecapText(list, settings, { details: detail, chantier, extra, voirOffert });
     try {
       if (navigator.share) await navigator.share({ title: `Récapitulatif — ${nomChantier}`, text: texte });
       else {
@@ -169,6 +174,18 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
               <option value="offert">tout offert</option>
             </select>
           </label>
+          {s.offert > 0 && (
+            <label className="flex items-center gap-2">
+              Trajet / km offerts
+              <select className="rounded-lg border border-stone-300 px-2 py-1 text-sm" value={voirOffert} onChange={(e) => setVoirOffert(e.target.value)} data-testid="fiche-voir-offert">
+                {VOIR_OFFERT.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="flex items-center gap-2">
             <input type="checkbox" className="h-4 w-4 accent-orange-600" checked={detail} onChange={(e) => setDetail(e.target.checked)} />
             Détail des montants par jour
@@ -357,9 +374,9 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
                       {[
                         c.hT ? `Main-d'œuvre ${hm(c.hT)}${horairesTravail(e) ? ` (${horairesTravail(e)})` : ''}` : null,
                         c.hC ? `Courses ${hm(c.hC)}${horairesCourses(e) ? ` (${horairesCourses(e)})` : ''}` : null,
-                        e.sansKm ? null : `${km1(c.km)}${texteMateriel(e) ? ` ${texteMateriel(e)}` : ''}${e.kmOffert && c.km ? ` (offerts, valeur ${eur(c.deplacementOffert)})` : ''}`,
-                        c.hTrajet
-                          ? `Trajet ${hm(c.hTrajet)} ${e.trajetMode === 'offert' ? `(offert, valeur ${eur(c.trajetOffert)})` : '(facturé)'}${e.trajetDeduit ? ', retiré du temps de travail' : ''}`
+                        texteKm(e, c, voirOffert),
+                        texteTrajet(e, c, voirOffert, { facture: ' (facturé)' })
+                          ? `${texteTrajet(e, c, voirOffert, { facture: ' (facturé)' })}${e.trajetDeduit ? ', retiré du temps de travail' : ''}`
                           : null,
                         e.camion ? 'Camion' : null,
                         e.nettoyage ? 'Nettoyage camion' : null,
@@ -391,7 +408,7 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
           <h2 className="mb-2 text-sm font-bold uppercase">Récapitulatif</h2>
           <table className="w-full border-collapse">
             <tbody>
-              {postes(list, extra).map((p) => (
+              {postes(list, extra, voirOffert).map((p) => (
                 <tr key={p.libelle} className="border-b border-stone-400">
                   <td className="py-1.5 pr-2">{p.libelle}</td>
                   <td className="py-1.5 pr-2 text-right text-[12px] tabular-nums">{p.qte}</td>
@@ -399,7 +416,12 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
                   <td className="py-1.5 text-right tabular-nums">
                     {p.pu === 'offert' ? (
                       <span>
-                        <s>{eur(p.valeur)}</s> 0,00&nbsp;€
+                        {p.valeur != null && (
+                          <>
+                            <s>{eur(p.valeur)}</s>{' '}
+                          </>
+                        )}
+                        0,00&nbsp;€
                       </span>
                     ) : p.ajust ? (
                       `${p.montant < 0 ? '−' : '+'} ${eur(Math.abs(p.montant))}`
@@ -417,14 +439,13 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
                   {eur(s.total + tx.net)}
                 </td>
               </tr>
-              {s.offert > 0 && (
+              {geste && (
                 <tr>
                   <td className="pt-2 text-[12px] italic" colSpan={3}>
-                    Geste commercial :{' '}
-                    {[s.trajetOffert > 0 ? 'temps de trajet' : null, s.deplacementOffert > 0 ? 'kilomètres' : null].filter(Boolean).join(' et ')} offerts
+                    {geste.texte}
                   </td>
                   <td className="pt-2 text-right text-[12px] italic tabular-nums" data-testid="fiche-offert">
-                    {eur(s.offert)}
+                    {geste.montant != null ? eur(geste.montant) : ''}
                   </td>
                 </tr>
               )}
@@ -432,7 +453,8 @@ export default function Fiche({ entries, settings, chantier, chantiers = [], onC
           </table>
           <p className="mt-2 text-[11px] text-stone-600">
             {s.nb} intervention{s.nb > 1 ? 's' : ''} · {hm(s.hT)} de main-d'œuvre · {hm(s.hC)} de courses
-            {s.hTrajet ? ` · ${hm(s.hTrajet)} de trajet` : ''} · {km1(s.km)}
+            {vis.hTrajet ? ` · ${hm(vis.hTrajet)} de trajet` : ''}
+            {vis.km ? ` · ${km1(vis.km)}` : ''}
           </p>
         </div>
 

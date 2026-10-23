@@ -1,5 +1,10 @@
 Bricolage Pro by C. Guilhem — journal des modifications
 
+v1.11.0 — 23/10/2026
+- Trajet et kilomètres offerts : nouveau choix « Trajet / km offerts » sur la fiche récapitulative et dans Partager
+- « Avec montant » : la valeur du cadeau apparaît (comme avant) ; « Offert » seul : mention « offert » sans montant ; « Masqués » : ni ligne de trajet / km offerts, ni geste commercial
+- S'applique à la fiche, à l'impression, au PDF et au message texte ; choix mémorisé sur l'appareil ; le coût total ne change pas
+
 v1.10.0 — 22/10/2026
 - Prestation : nouvelle rubrique « Photos du chantier » (plusieurs photos, légende pour chacune)
 - Chaque photo : « Sur la fiche / le PDF » = Non, Petit, Moyen ou Grand ; bouton « Toutes » pour régler toutes les photos d'un coup
